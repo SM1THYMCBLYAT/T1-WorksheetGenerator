@@ -1,0 +1,10 @@
+cd (change directory to 'T1' and tab)
+git status (check for new changes in main)
+git pull (retrieve newest in main)
+edit files...
+git add . (adds files and modifications to be introduced to main)
+git commit -m "name: context" (keep comments specific)
+git push (send all new and edited files up from local to main, changing main)
+
+
+
