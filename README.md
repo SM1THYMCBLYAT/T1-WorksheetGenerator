@@ -1,4 +1,8 @@
 # T1-WorksheetGenerator
+logic: backend
+model: data storage
+services: data handling and requests
+ui: user interface/front end
 
 :)
 hello world
