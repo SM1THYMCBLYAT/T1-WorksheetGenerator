@@ -15,20 +15,14 @@
     </properties>
 
     <dependencies>
-        <!--
-          DEPENDENCY 1: Apache PDFBox
-          This is the main library we will use to create PDF documents.
-        -->
+        <!-- DEPENDENCY 1: Apache PDFBox. This is the main library we will use to create PDF documents. -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>2.0.31</version> <!-- Use 2.x for simplicity over 3.x -->
         </dependency>
 
-        <!--
-          DEPENDENCY 2: JUnit 5 (for Unit Testing in Week 4)
-          This library lets us test our logic classes automatically.
-        -->
+        <!-- DEPENDENCY 2: JUnit 5 (for Unit Testing in Week 4) This library lets us test our logic classes automatically. -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
