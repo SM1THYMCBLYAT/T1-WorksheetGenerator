@@ -7,3 +7,5 @@ Zia: https://www.figma.com/design/8z7WUGTvjG9HhFeQ0VGZUg/Untitled?node-id=0-1\&t
 
 Zicklin: https://www.figma.com/design/kUhFfCAXRZ5YdX81zzbb4e/worksheet-factory-ui?node-id=0-1\&p=f\&t=czHPEIuxcXcKxAjH-0
 
+Payge:https://www.figma.com/design/kPZw0aOPlfejxyJwDLQTY1/Worksheet-Generator?node-id=0-1\&t=Ybc2Zz4DKrz3svFk-1
+
