@@ -8,6 +8,9 @@ public class MainWindow extends JFrame {
     public MainWindow() {
         setTitle("My App");
         setSize(400, 300);
+
+        
+
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 }

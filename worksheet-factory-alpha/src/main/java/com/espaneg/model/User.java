@@ -1,4 +1,4 @@
-package com.alpha.ui;
+package com.espaneg.model;
 
 public class User {
     String Name;
