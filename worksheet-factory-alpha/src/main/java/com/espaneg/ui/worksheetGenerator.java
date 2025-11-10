@@ -8,7 +8,7 @@ import javax.swing.border.Border;
 import java.awt.*;
 
 
-public class mainWindow {
+public class worksheetGenerator {
     public static void main(String[] args) {
 
         ImageIcon image= new ImageIcon("LOGO2.png");
