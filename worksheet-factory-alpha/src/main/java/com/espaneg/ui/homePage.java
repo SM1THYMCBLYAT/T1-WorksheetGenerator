@@ -13,11 +13,11 @@ public class homePage {
         frame3.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame3.setLocationRelativeTo(null);
 
-        ImageIcon logo = new ImageIcon("LOGO.png"); //textbox logo
+        ImageIcon logo = new ImageIcon("LOGO.png");
         frame3.setIconImage(logo.getImage());
 
         GradientPanel background = new GradientPanel();
-        background.setLayout(null); // absolute positioning for clean Figma layout
+        background.setLayout(null);
         frame3.setContentPane(background);
 
         JLabel logoIcon = new JLabel(new ImageIcon("LOGO2.png"));
