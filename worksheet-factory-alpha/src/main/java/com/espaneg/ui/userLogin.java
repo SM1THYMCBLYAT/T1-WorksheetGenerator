@@ -76,7 +76,7 @@ public class userLogin {
         }
     }
 
-    /** Rounded card panel */
+
     static class RoundedPanel extends JPanel {
         private final int radius;
         RoundedPanel(int radius) {
@@ -117,7 +117,7 @@ public class userLogin {
         }
         @Override
         public void setBorder(Border border) {
-            // keep internal padding only
+
             super.setBorder(border);
         }
     }
