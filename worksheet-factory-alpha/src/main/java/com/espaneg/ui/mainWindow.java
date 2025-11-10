@@ -42,7 +42,7 @@ public class mainWindow {
         frame.setIconImage(logo.getImage());
         frame.getContentPane().setBackground(new Color(0xdaf0ff)); //back color
 
-        frame.add(label); //adds label to frame
+
         frame.revalidate(); //refreshes adding text to already made frame
 
 
