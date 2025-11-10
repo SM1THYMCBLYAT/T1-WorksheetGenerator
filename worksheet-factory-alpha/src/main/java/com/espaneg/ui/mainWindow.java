@@ -29,7 +29,7 @@ public class mainWindow {
         label.setFont(new Font("Inter",Font.PLAIN,96)); // set font
         label.setOpaque(true);
         label.setBorder(headBorder1);
-
+        label.setBounds(0,0,250,250);
 
 
         JFrame frame = new JFrame();
