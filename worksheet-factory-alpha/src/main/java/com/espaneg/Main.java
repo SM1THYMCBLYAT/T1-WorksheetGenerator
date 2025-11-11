@@ -1,10 +1,11 @@
 package com.espaneg;
-/*
-the bread and butter of the program used to run
- */
+
+import com.espaneg.ui.HomePage;
+
+import javax.swing.*;
 
 public class Main {
     public static void main(String[] args) {
-
-            }
+        SwingUtilities.invokeLater(HomePage::new);
+    }
 }
