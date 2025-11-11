@@ -27,7 +27,7 @@ public class accountCreation {
         title.setBounds(380, 40, 500, 60);
         background.add(title);
 
-        JLabel userIcon  = new JLabel(new ImageIcon("USERICON.png"));
+        JLabel userIcon = new JLabel(new ImageIcon("USERICON.png"));
         userIcon.setBounds(520, 140, 150, 150);
         background.add(userIcon);
 
@@ -47,11 +47,11 @@ public class accountCreation {
         background.add(form);
 
 
-            JTextField fullName = new RoundedTextField("Full name:");
-            JTextField email = new RoundedTextField("Email:");
-            JTextField mobile = new RoundedTextField("Mobile Number:");
-            JPasswordField password = new RoundedPasswordField("Password:");
-            JPasswordField confirmPassword = new RoundedPasswordField("Confirm Password:");
+        JTextField fullName = new RoundedTextField("Full name:");
+        JTextField email = new RoundedTextField("Email:");
+        JTextField mobile = new RoundedTextField("Mobile Number:");
+        JPasswordField password = new RoundedPasswordField("Password:");
+        JPasswordField confirmPassword = new RoundedPasswordField("Confirm Password:");
 
         form.add(fullName);
         form.add(email);
@@ -165,4 +165,38 @@ public class accountCreation {
             }
         }
     }
+
+    //Zachary Pojo implementation
+    public static class AccountDetails {
+        private final String fullName;
+        private final String email;
+        private final String mobileNumber;
+        private final String password;
+
+        public AccountDetails(String fullName, String email, String mobileNumber, String password) {
+            this.fullName = fullName;
+            this.email = email;
+            this.mobileNumber = mobileNumber;
+            this.password = password;
+        }
+
+        public String getFullName() {
+            return fullName;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public String getMobileNumber() {
+            return mobileNumber;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+    }
 }
+
+
+
