@@ -41,6 +41,17 @@ public class UserLogin extends JFrame {
         continueBtn.setMaximumSize(new Dimension(200, 50));
         continueBtn.setBorder(BorderFactory.createEmptyBorder(15, 0, 20, 0));
 
+        RoundedButton loginReturnToHome = new RoundedButton("Return");
+        loginReturnToHome.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        loginReturnToHome.setMaximumSize(new Dimension(200,50));
+
+        loginReturnToHome.setBorder(BorderFactory.createEmptyBorder(15,0,20,0));
+
+        loginReturnToHome.addActionListener(e -> {
+            new HomePage();
+            dispose();
+        });
 
         background.add(title);
         background.add(subtitle);
@@ -48,6 +59,7 @@ public class UserLogin extends JFrame {
         background.add(formPanel);
         background.add(Box.createVerticalStrut(30));
         background.add(continueBtn);
+        background.add(loginReturnToHome);
 
         setVisible(true);
     }
