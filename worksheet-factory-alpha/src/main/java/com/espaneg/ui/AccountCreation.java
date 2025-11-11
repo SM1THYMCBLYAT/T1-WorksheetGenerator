@@ -95,7 +95,7 @@ public class AccountCreation {
         }
     }
 
-    // --- Rounded card panel ---
+
     static class RoundedPanel extends JPanel {
         private final int radius;
 

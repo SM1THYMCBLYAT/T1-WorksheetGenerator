@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+
 public class HomePage {
 
     public static void main(String[] args) {
@@ -40,6 +41,10 @@ public class HomePage {
         RoundedButton loginButton = new RoundedButton("Login to existing account");
         loginButton.setBounds(380, 250, 420, 55);
         background.add(loginButton);
+        loginButton.addActionListener(e -> {
+            new UserLogin();
+            dispose();         // ✅ close the home page window
+        });
 
 //zachary:Added a link betweet login and userlogin.java
         loginButton.addActionListener(new ActionListener() {
@@ -88,6 +93,9 @@ public class HomePage {
         frame3.setVisible(true);
     }
 
+    private static void dispose() {
+    }
+
 
     static class GradientPanel extends JPanel {
         @Override
@@ -125,7 +133,7 @@ public class HomePage {
         }
     }
 
-    
+
     static class RoundedPanel extends JPanel {
         private final int radius;
         RoundedPanel(int radius) {
