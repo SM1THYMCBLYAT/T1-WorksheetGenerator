@@ -43,7 +43,7 @@ public class HomePage {
         background.add(loginButton);
         loginButton.addActionListener(e -> {
             new UserLogin();
-            dispose();         // ✅ close the home page window
+            dispose();        
         });
 
 //zachary:Added a link betweet login and userlogin.java
