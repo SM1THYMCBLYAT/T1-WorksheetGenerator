@@ -60,7 +60,18 @@ public class HomePage {
         RoundedButton signupButton = new RoundedButton("Create a new account");
         signupButton.setBounds(380, 320, 420, 55);
         background.add(signupButton);
+        loginButton.addActionListener(e -> {
+            new AccountCreation();
+            dispose();
+        });
 
+        signupButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e){
+                frame3.dispose();
+                AccountCreation.main(null);
+            }
+        });
 
         RoundedPanel testimonial = new RoundedPanel(20);
         testimonial.setBackground(Color.WHITE);
