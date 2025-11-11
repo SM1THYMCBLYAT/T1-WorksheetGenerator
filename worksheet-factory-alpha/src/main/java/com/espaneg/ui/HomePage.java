@@ -2,6 +2,8 @@ package com.espaneg.ui;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class HomePage {
 
@@ -16,7 +18,6 @@ public class HomePage {
         GradientPanel background = new GradientPanel();
         background.setLayout(null);
         frame3.setContentPane(background);
-
 
         JLabel logoIcon = new JLabel(new ImageIcon("logoWhite.png"));
         logoIcon.setBounds(380, 80, 80, 80);
@@ -40,6 +41,16 @@ public class HomePage {
         loginButton.setBounds(380, 250, 420, 55);
         background.add(loginButton);
 
+//zachary:Added a link betweet login and userlogin.java
+        loginButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Hide the current window
+                frame3.setVisible(false);
+                // Open the new UserLogin window
+                new UserLogin();
+            }
+        });
 
         RoundedButton signupButton = new RoundedButton("Create a new account");
         signupButton.setBounds(380, 320, 420, 55);
