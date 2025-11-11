@@ -1,64 +1,75 @@
 package com.espaneg.ui;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 
-public class userLogin {
+public class userLogin extends JFrame {
 
-    public static void main(String[] args) {
 
-        JFrame frame1 = new JFrame();
-        frame1.setTitle("Educreate");                  // window title
-        frame1.setSize(1000, 600);                     // size (fits design)
-        frame1.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame1.setLocationRelativeTo(null);            // center on screen
+    public userLogin() {
 
-        try {
-            ImageIcon logo = new ImageIcon("LOGO.png");
-            frame1.setIconImage(logo.getImage());
-        } catch (Exception ignored) {}
+        setTitle("EduCreate - Login");
+        setSize(1000, 600);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
 
-        GradientPanel background = new GradientPanel();
+
+        JPanel background = new GradientPanel();
         background.setLayout(new BoxLayout(background, BoxLayout.Y_AXIS));
-        frame1.setContentPane(background);
+        add(background);
 
-        JLabel title = new JLabel("Login"); //added title
-        title.setFont(new Font("SansSerif", Font.BOLD, 40));
+
+        JLabel title = new JLabel("Login");
+        title.setFont(new Font("SansSerif", Font.BOLD, 36));
         title.setForeground(Color.WHITE);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
-        title.setBorder(BorderFactory.createEmptyBorder(40, 0, 6, 0));
+        title.setBorder(BorderFactory.createEmptyBorder(40, 0, 10, 0));
 
-        JLabel subtitle = new JLabel("Continue your journey by logging into your account"); //added subtitle
+
+        JLabel subtitle = new JLabel("Continue your journey by logging into your account");
         subtitle.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        subtitle.setForeground(new Color(235, 240, 245));
+        subtitle.setForeground(new Color(240, 240, 240));
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        Component spacer = Box.createVerticalStrut(36);
 
-        RoundedPanel card = new RoundedPanel(28);
-        card.setBackground(new Color(255, 255, 255, 225));        // soft white
-        card.setLayout(new GridLayout(3, 1, 14, 14));
-        card.setMaximumSize(new Dimension(640, 210));
-        card.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
-        card.setAlignmentX(Component.CENTER_ALIGNMENT);
+        RoundedPanel formPanel = getRoundedPanel();
 
-        JTextField emailField = new RoundedTextField("Email:");
-        JPasswordField passwordField = new RoundedPasswordField("Password:");
-        JPasswordField confirmField = new RoundedPasswordField("Confirm Password:");
 
-        card.add(emailField);
-        card.add(passwordField);
-        card.add(confirmField);
+        RoundedButton continueBtn = new RoundedButton("Continue");
+        continueBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        continueBtn.setMaximumSize(new Dimension(200, 50));
+        continueBtn.setBorder(BorderFactory.createEmptyBorder(15, 0, 20, 0));
+
 
         background.add(title);
         background.add(subtitle);
-        background.add(spacer);
-        background.add(card);
+        background.add(Box.createVerticalStrut(40));
+        background.add(formPanel);
+        background.add(Box.createVerticalStrut(30));
+        background.add(continueBtn);
 
-        frame1.setVisible(true);
+        setVisible(true);
     }
+
+    private static RoundedPanel getRoundedPanel() {
+        RoundedPanel formPanel = new RoundedPanel(35);
+        formPanel.setBackground(new Color(255, 255, 255, 200));
+        formPanel.setLayout(new GridLayout(3, 1, 10, 10));
+        formPanel.setMaximumSize(new Dimension(600, 200));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+
+        JTextField email = new RoundedTextField("Email:");
+        JPasswordField password = new RoundedPasswordField("Password:");
+        JPasswordField confirmPassword = new RoundedPasswordField("Confirm Password:");
+
+        formPanel.add(email);
+        formPanel.add(password);
+        formPanel.add(confirmPassword);
+        return formPanel;
+    }
+
 
     static class GradientPanel extends JPanel {
         @Override
@@ -78,74 +89,111 @@ public class userLogin {
 
 
     static class RoundedPanel extends JPanel {
-        private final int radius;
-        RoundedPanel(int radius) {
-            this.radius = radius;
+        private final int cornerRadius;
+
+        public RoundedPanel(int radius) {
+            this.cornerRadius = radius;
             setOpaque(false);
         }
+
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            Shape r = new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), radius, radius);
+
+            Shape round = new RoundRectangle2D.Float(
+                    0, 0, getWidth(), getHeight(),
+                    cornerRadius, cornerRadius
+            );
+
             g2.setColor(getBackground());
-            g2.fill(r);
+            g2.fill(round);
             super.paintComponent(g);
         }
     }
+
 
     static class RoundedTextField extends JTextField {
         private final String placeholder;
-        RoundedTextField(String placeholder) {
+
+        public RoundedTextField(String placeholder) {
             this.placeholder = placeholder;
             setOpaque(false);
             setFont(new Font("SansSerif", Font.PLAIN, 16));
-            setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
+            setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
         }
+
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(Color.WHITE);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
-            super.paintComponent(g);
-            if (getText().isEmpty() && !isFocusOwner()) {
-                g2.setColor(new Color(150, 155, 160));
-                g2.setFont(getFont());
-                g2.drawString(placeholder, 16, getHeight() / 2 + getFont().getSize() / 2 - 3);
-            }
-        }
-        @Override
-        public void setBorder(Border border) {
 
-            super.setBorder(border);
+            g2.setColor(Color.WHITE);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
+
+            super.paintComponent(g);
+
+            if (getText().isEmpty() && !isFocusOwner()) {
+                g2.setColor(new Color(160, 160, 160));
+                g2.drawString(placeholder, 15, getHeight() / 2 + 5);
+            }
         }
     }
 
+
     static class RoundedPasswordField extends JPasswordField {
         private final String placeholder;
-        RoundedPasswordField(String placeholder) {
+
+        public RoundedPasswordField(String placeholder) {
             this.placeholder = placeholder;
             setOpaque(false);
             setFont(new Font("SansSerif", Font.PLAIN, 16));
-            setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
+            setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
         }
+
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g;
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
             g2.setColor(Color.WHITE);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 25, 25);
+
             super.paintComponent(g);
+
             if (getPassword().length == 0 && !isFocusOwner()) {
-                g2.setColor(new Color(150, 155, 160));
-                g2.setFont(getFont());
-                g2.drawString(placeholder, 16, getHeight() / 2 + getFont().getSize() / 2 - 3);
+                g2.setColor(new Color(160, 160, 160));
+                g2.drawString(placeholder, 15, getHeight() / 2 + 5);
             }
         }
-        @Override
-        public void setBorder(Border border) {
-            super.setBorder(border);
+    }
+
+
+    static class RoundedButton extends JButton {
+        public RoundedButton(String text) {
+            super(text);
+            setFocusPainted(false);
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFont(new Font("SansSerif", Font.BOLD, 18));
+            setForeground(new Color(60, 70, 85));
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
         }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            g2.setColor(new Color(255, 255, 255, 220));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 30, 30);
+
+            super.paintComponent(g);
+        }
+    }
+
+
+    public static void main(String[] args) {
+        new userLogin();
     }
 }
