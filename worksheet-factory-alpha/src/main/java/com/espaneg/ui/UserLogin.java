@@ -4,10 +4,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 
-public class userLogin extends JFrame {
+public class UserLogin extends JFrame {
 
 
-    public userLogin() {
+    public UserLogin() {
 
         setTitle("EduCreate - Login");
         setSize(1000, 600);
@@ -194,6 +194,6 @@ public class userLogin extends JFrame {
 
 
     public static void main(String[] args) {
-        new userLogin();
+        new UserLogin();
     }
 }

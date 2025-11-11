@@ -3,7 +3,7 @@ package com.espaneg.ui;
 import javax.swing.*;
 import java.awt.*;
 
-public class accountCreation {
+public class AccountCreation {
 
     public static void main(String[] args) {
 

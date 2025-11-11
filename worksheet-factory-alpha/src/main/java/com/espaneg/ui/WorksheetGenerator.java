@@ -4,7 +4,7 @@ import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 
-public class worksheetGenerator {
+public class WorksheetGenerator {
 
     public static void main(String[] args) {
 

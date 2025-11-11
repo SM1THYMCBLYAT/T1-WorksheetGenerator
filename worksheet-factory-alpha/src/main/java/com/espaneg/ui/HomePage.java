@@ -3,9 +3,9 @@ package com.espaneg.ui;
 import javax.swing.*;
 import java.awt.*;
 
-public class homePage extends JFrame{
+public class HomePage extends JFrame{
 
-        public homePage() {
+        public HomePage() {
             this.setTitle("Educreate"); //text box name
             this.setSize(1920, 880); //frame size
             this.setVisible(true); //visibility of frame
