@@ -7,7 +7,7 @@ import java.awt.*;
 
 public class ContentGenerator extends JPanel {
 
-    // Fields must be instance variables to retrieve values later
+
     private final JTextField studentNameField;
     private final JComboBox<String> worksheetTypeBox;
     private final JSlider fontSizeSlider;
@@ -34,7 +34,7 @@ public class ContentGenerator extends JPanel {
         add(fontSizeSlider);
 
         generateBtn = new JButton("Generate Worksheet");
-        // Removed the temporary ActionListener here, it will be added by the main application
+
         add(generateBtn);
     }
 

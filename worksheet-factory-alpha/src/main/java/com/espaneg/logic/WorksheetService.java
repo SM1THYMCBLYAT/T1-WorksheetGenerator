@@ -27,7 +27,7 @@ public class WorksheetService {
                 break;
         }
 
-        
+
         for (int i = 1; i <= count; i++) {
             String item = String.format("%s%d - Name: %s (Type: %s, Size: %d)",
                     baseTypeDescription, i,
