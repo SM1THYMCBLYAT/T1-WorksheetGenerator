@@ -33,6 +33,17 @@ public class WorksheetGenerator {
         leftContent.setLayout(new BoxLayout(leftContent, BoxLayout.Y_AXIS));
         leftContent.setBackground(Color.WHITE);
 
+        
+        leftContent.add(createSection("Student Details"));
+        leftContent.add(createSection("Grid"));
+        leftContent.add(createSection("Font"));
+        leftContent.add(createSection("Import Content"));
+        leftContent.add(createSection("Template Layouts"));
+        leftContent.add(createSection("Colour Palette"));
+        leftContent.add(createSection("Calculations"));
+        leftContent.add(createSection("Extensions"));
+        leftContent.add(createSection("Translate"));
+
 
         JScrollPane leftScroll = new JScrollPane(leftContent);
         leftScroll.setBounds(0, 80, 270, 820);
@@ -119,6 +130,48 @@ public class WorksheetGenerator {
         frame.setVisible(true);
     }
 
+    public static JPanel createSection(String title) {
+        JPanel sectionPanel = new JPanel();
+        sectionPanel.setLayout(new BorderLayout());
+        sectionPanel.setMaximumSize(new Dimension(250, 80));
+        sectionPanel.setBackground(new Color(245, 247, 250));
+        sectionPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+
+        JButton headerButton = new JButton("▼  " + title);
+        headerButton.setFocusPainted(false);
+        headerButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+        headerButton.setForeground(new Color(50, 60, 80));
+        headerButton.setContentAreaFilled(false);
+        headerButton.setBorderPainted(false);
+        headerButton.setHorizontalAlignment(SwingConstants.LEFT);
+
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setVisible(false);
+
+
+        JLabel placeholder = new JLabel("Section content goes here...");
+        placeholder.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        placeholder.setForeground(new Color(90, 90, 90));
+        placeholder.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 5));
+        contentPanel.add(placeholder);
+
+
+        headerButton.addActionListener(e -> {
+            boolean visible = contentPanel.isVisible();
+            contentPanel.setVisible(!visible);
+            headerButton.setText((visible ? "▼  " : "▲  ") + title);
+            sectionPanel.revalidate();
+        });
+
+        sectionPanel.add(headerButton, BorderLayout.NORTH);
+        sectionPanel.add(contentPanel, BorderLayout.CENTER);
+
+        return sectionPanel;
+    }
 
     public static JPanel section(String title) {
         JPanel panel = new JPanel();
