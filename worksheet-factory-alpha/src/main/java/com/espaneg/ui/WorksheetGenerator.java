@@ -1,7 +1,10 @@
 package com.espaneg.ui;
 
+import com.espaneg.utils.ResourceLoader;
+
 import javax.swing.*;
 import javax.swing.border.LineBorder;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 
 public class WorksheetGenerator {
@@ -14,52 +17,76 @@ public class WorksheetGenerator {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
 
-        ImageIcon logo = new ImageIcon("LOGO.png"); //textbox logo
-        frame.setIconImage(logo.getImage());
+        // --- ICON FIX 1: Logo loading ---
+        ImageIcon logo = ResourceLoader.loadIcon("LOGO2.png" );
+        if (logo != null) {
+            frame.setIconImage(logo.getImage());
+        }
 
         GradientPanel background = new GradientPanel();
         background.setLayout(null);
         frame.setContentPane(background);
 
-
+        // ============================================================
+        // LEFT PANEL
+        // ============================================================
         RoundedPanel leftPanel = new RoundedPanel(0);
         leftPanel.setBackground(Color.WHITE);
         leftPanel.setBounds(0, 0, 270, 900);
         leftPanel.setLayout(null);
         background.add(leftPanel);
 
-
         JPanel leftContent = new JPanel();
         leftContent.setLayout(new BoxLayout(leftContent, BoxLayout.Y_AXIS));
         leftContent.setBackground(Color.WHITE);
 
-        
-        leftContent.add(createSection("Student Details"));
-        leftContent.add(createSection("Grid"));
-        leftContent.add(createSection("Font"));
-        leftContent.add(createSection("Import Content"));
-        leftContent.add(createSection("Template Layouts"));
-        leftContent.add(createSection("Colour Palette"));
-        leftContent.add(createSection("Calculations"));
-        leftContent.add(createSection("Extensions"));
-        leftContent.add(createSection("Translate"));
-
-
         JScrollPane leftScroll = new JScrollPane(leftContent);
-        leftScroll.setBounds(0, 80, 270, 820);
+        leftScroll.setBounds(0, 120, 270, 780); // moved down to make space for header
         leftScroll.setBorder(null);
         leftPanel.add(leftScroll);
 
-
-        JLabel menuIcon = new JLabel(new ImageIcon("USERICON.png"));
+        // --- ICON FIX 2 & 3: Menu Icons loading ---
+        JLabel menuIcon = new JLabel(ResourceLoader.loadIcon("HOME.png"));
         menuIcon.setBounds(20, 20, 30, 30);
         leftPanel.add(menuIcon);
 
-        JLabel menuCollapseIcon = new JLabel(new ImageIcon("LOgo2.png"));
+        // Assuming a collapsed menu icon file name
+        JLabel menuCollapseIcon = new JLabel(ResourceLoader.loadIcon("EXIT.png"));
         menuCollapseIcon.setBounds(220, 20, 30, 30);
         leftPanel.add(menuCollapseIcon);
 
+        // ===== ADDED HEADER ABOVE SIDEBAR =====
+        JLabel sidebarHeader = new JLabel("Worksheet Generator");
+        sidebarHeader.setFont(new Font("SansSerif", Font.BOLD, 20));
+        sidebarHeader.setForeground(new Color(50, 60, 80));
+        sidebarHeader.setBounds(20, 70, 250, 30);
+        leftPanel.add(sidebarHeader);
 
+        // ============================================================
+        // CANVAS
+        // ============================================================
+        JPanel canvas = new JPanel();
+        canvas.setBackground(Color.WHITE);
+        canvas.setBorder(new LineBorder(new Color(170, 170, 255), 2, true));
+        canvas.setBounds(430, 140, 550, 650);
+        background.add(canvas);
+
+        // ============================================================
+        // ADD SIDEBAR SECTIONS
+        // ============================================================
+        leftContent.add(createStudentDetailsSection(canvas));
+        leftContent.add(section("Grid"));
+        leftContent.add(section("Font"));
+        leftContent.add(section("Import Content"));
+        leftContent.add(section("Template Layouts"));
+        leftContent.add(section("Colour Palette"));
+        leftContent.add(section("Calculations"));
+        leftContent.add(section(""));
+        leftContent.add(section("Translate"));
+
+        // ============================================================
+        // SEARCH BAR
+        // ============================================================
         RoundedPanel searchBar = new RoundedPanel(40);
         searchBar.setBackground(new Color(255, 255, 255, 120));
         searchBar.setBounds(320, 30, 500, 50);
@@ -74,11 +101,14 @@ public class WorksheetGenerator {
         searchField.setBounds(20, 10, 430, 30);
         searchBar.add(searchField);
 
-        JLabel searchIcon = new JLabel(new ImageIcon("search.png"));
+        // --- ICON FIX 4: Search Icon loading ---
+        JLabel searchIcon = new JLabel(ResourceLoader.loadIcon("SEARCH.png"));
         searchIcon.setBounds(450, 10, 30, 30);
         searchBar.add(searchIcon);
 
-
+        // ============================================================
+        // TOP RIGHT BUTTONS
+        // ============================================================
         RoundedButton exportButton = new RoundedButton("Export & Share");
         exportButton.setBounds(1000, 30, 160, 45);
         background.add(exportButton);
@@ -88,33 +118,30 @@ public class WorksheetGenerator {
         moreButton.setBounds(1180, 30, 60, 45);
         background.add(moreButton);
 
-        JPanel canvas = new JPanel();
-        canvas.setBackground(Color.WHITE);
-        canvas.setBorder(new LineBorder(new Color(170, 170, 255), 2, true));
-        canvas.setBounds(430, 140, 550, 650);
-        background.add(canvas);
-
-
+        // ============================================================
+        // TOOLBAR (BOTTOM)
+        // ============================================================
         RoundedPanel toolbar = new RoundedPanel(40);
         toolbar.setBackground(new Color(255, 255, 255, 140));
         toolbar.setBounds(350, 820, 700, 55);
         toolbar.setLayout(null);
         background.add(toolbar);
 
-        JLabel icon1 = toolbarIcon("undo.png", 50);
-        JLabel icon2 = toolbarIcon("redo.png", 120);
-        JLabel icon3 = toolbarIcon("align-left.png", 190);
-        JLabel icon4 = toolbarIcon("align-center.png", 260);
-        JLabel icon5 = toolbarIcon("align-right.png", 330);
-        JLabel icon6 = toolbarIcon("refresh.png", 400);
+        // --- ICON FIX 5: Toolbar Icons (Corrected usage) ---
+        // Note: Filenames must not include "images/" since ResourceLoader adds that path.
+        toolbar.add(toolbarIcon("UNDO.png", 50));
+        toolbar.add(toolbarIcon("ARROWLEFT.png", 120));
+        toolbar.add(toolbarIcon("ALIGNLEFT.png", 190));
+        toolbar.add(toolbarIcon("ALIGNCENTER.png", 260));
+        toolbar.add(toolbarIcon("ALIGNRIGHT.png", 330));
+        toolbar.add(toolbarIcon("ARROWRIGHT.png", 400));
 
-        toolbar.add(icon1);
-        toolbar.add(icon2);
-        toolbar.add(icon3);
-        toolbar.add(icon4);
-        toolbar.add(icon5);
-        toolbar.add(icon6);
+        // Removed the redundant/unused ResourceLoader call here:
+        //ImageIcon undoIcon = ResourceLoader.loadIcon("UNDO.png");
 
+        // ============================================================
+        // CHATBOT
+        // ============================================================
         RoundedPanel chatbotBubble = new RoundedPanel(15);
         chatbotBubble.setBackground(Color.WHITE);
         chatbotBubble.setBounds(1100, 700, 180, 90);
@@ -130,15 +157,17 @@ public class WorksheetGenerator {
         frame.setVisible(true);
     }
 
-    public static JPanel createSection(String title) {
-        JPanel sectionPanel = new JPanel();
-        sectionPanel.setLayout(new BorderLayout());
-        sectionPanel.setMaximumSize(new Dimension(250, 80));
-        sectionPanel.setBackground(new Color(245, 247, 250));
+    // ============================================================
+    // STUDENT DETAILS SECTION (FULL FUNCTIONAL)
+    // ============================================================
+    public static JPanel createStudentDetailsSection(JPanel canvas) {
+
+        JPanel sectionPanel = new JPanel(new BorderLayout());
+        sectionPanel.setMaximumSize(new Dimension(250, 200));
+        sectionPanel.setBackground(Color.WHITE);
         sectionPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-
-        JButton headerButton = new JButton("▼  " + title);
+        JButton headerButton = new JButton("▼  Student Details");
         headerButton.setFocusPainted(false);
         headerButton.setFont(new Font("SansSerif", Font.BOLD, 14));
         headerButton.setForeground(new Color(50, 60, 80));
@@ -146,48 +175,90 @@ public class WorksheetGenerator {
         headerButton.setBorderPainted(false);
         headerButton.setHorizontalAlignment(SwingConstants.LEFT);
 
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setVisible(false);
 
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setVisible(false);
+        JLabel nameLabel = new JLabel("Name:");
+        JTextField nameField = new JTextField();
+        nameField.setMaximumSize(new Dimension(230, 30));
 
+        JLabel instructionsLabel = new JLabel("Instructions:");
+        JTextArea instructionsArea = new JTextArea(4, 20);
+        instructionsArea.setLineWrap(true);
+        instructionsArea.setWrapStyleWord(true);
+        JScrollPane scroll = new JScrollPane(instructionsArea);
+        scroll.setMaximumSize(new Dimension(230, 80));
 
-        JLabel placeholder = new JLabel("Section content goes here...");
-        placeholder.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        placeholder.setForeground(new Color(90, 90, 90));
-        placeholder.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 5));
-        contentPanel.add(placeholder);
-
+        content.add(nameLabel);
+        content.add(nameField);
+        content.add(Box.createVerticalStrut(5));
+        content.add(instructionsLabel);
+        content.add(scroll);
 
         headerButton.addActionListener(e -> {
-            boolean visible = contentPanel.isVisible();
-            contentPanel.setVisible(!visible);
-            headerButton.setText((visible ? "▼  " : "▲  ") + title);
+            boolean visible = content.isVisible();
+            content.setVisible(!visible);
+            headerButton.setText((visible ? "▼  " : "▲  ") + "Student Details");
             sectionPanel.revalidate();
         });
 
         sectionPanel.add(headerButton, BorderLayout.NORTH);
-        sectionPanel.add(contentPanel, BorderLayout.CENTER);
+        sectionPanel.add(content, BorderLayout.CENTER);
+
+        // Canvas display
+        JLabel display = new JLabel();
+        display.setVerticalAlignment(SwingConstants.TOP);
+        display.setFont(new Font("SansSerif", Font.PLAIN, 16));
+
+        canvas.setLayout(new BorderLayout());
+        canvas.add(display, BorderLayout.NORTH);
+
+        Runnable refresh = () -> {
+            String name = nameField.getText();
+            String ins = instructionsArea.getText().replace("\n", "<br>");
+
+            display.setText("<html><b>Name:</b> " + name +
+                    "<br><br><b>Instructions:</b><br>" + ins + "</html>");
+
+            canvas.revalidate();
+            canvas.repaint();
+        };
+
+        nameField.getDocument().addDocumentListener(simpleListener(refresh));
+        instructionsArea.getDocument().addDocumentListener(simpleListener(refresh));
 
         return sectionPanel;
     }
 
+    // ============================================================
+    // GENERIC COLLAPSIBLE SECTION
+    // ============================================================
     public static JPanel section(String title) {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
-        panel.setMaximumSize(new Dimension(250, 90));
+        panel.setMaximumSize(new Dimension(250, 50));
         panel.setBackground(Color.WHITE);
 
-        JLabel label = new JLabel(title);
-        label.setFont(new Font("SansSerif", Font.BOLD, 16));
+        JLabel label = new JLabel("▼  " + title);
+        label.setFont(new Font("SansSerif", Font.BOLD, 14));
         label.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         panel.add(label, BorderLayout.NORTH);
         return panel;
     }
 
-
+    // ============================================================
+    // SUPPORT UTILITIES
+    // ============================================================
+    public static DocumentListener simpleListener(Runnable run) {
+        return new DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { run.run(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { run.run(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { run.run(); }
+        };
+    }
 
     static class GradientPanel extends JPanel {
         @Override
@@ -246,9 +317,61 @@ public class WorksheetGenerator {
         }
     }
 
+    /**
+     * **FIXED:** Now uses ResourceLoader to correctly load the icon from the classpath.
+     * @param filename The name of the icon file (e.g., "UNDO.png").
+     * @param x The x-coordinate for setting bounds.
+     * @return A JLabel containing the icon (or a text placeholder if missing).
+     */
     public static JLabel toolbarIcon(String filename, int x) {
-        JLabel icon = new JLabel(new ImageIcon(filename));
+
+        ImageIcon imageIcon = ResourceLoader.loadIcon(filename); // <-- THE CRITICAL FIX
+        JLabel icon;
+
+        if (imageIcon != null) {
+            icon = new JLabel(imageIcon);
+        } else {
+            // Fallback if the icon is missing
+            System.err.println("Toolbar icon not found: " + filename);
+            icon = new JLabel(filename.replace(".png", ""));
+            icon.setForeground(Color.RED);
+            icon.setFont(new Font("SansSerif", Font.BOLD, 10));
+        }
+
         icon.setBounds(x, 12, 32, 32);
+        icon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        // Normal, hover, and click background colours
+        Color normal = new Color(255, 255, 255, 0);
+        Color hover = new Color(255, 255, 255, 80);
+        Color pressed = new Color(255, 255, 255, 140);
+
+        icon.setOpaque(false);
+        icon.setBackground(null);
+
+        icon.addMouseListener(new java.awt.event.MouseAdapter() {
+
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                icon.setBackground(hover);
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                icon.setBackground(normal);
+            }
+
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                icon.setBackground(pressed);
+            }
+
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) {
+                icon.setBackground(hover); // returns to hover state
+            }
+        });
+
         return icon;
     }
 }
