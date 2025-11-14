@@ -1,0 +1,46 @@
+// ResourceLoader.java
+
+package com.espaneg.utils;
+
+import javax.swing.ImageIcon;
+import java.net.URL;
+
+// This class helps load resources safely from the application bundle
+public class ResourceLoader {
+    
+    /**
+     * Loads an image from the classpath, which makes it work correctly 
+     * when the application is bundled as a JAR file.
+     * * IMPORTANT: This assumes images are located in a 'resources/images' 
+     * directory in your project root.
+     * * @param fileName The name of the file (e.g., "UNDO.png").
+     * @return A new ImageIcon, or null if the file is not found.
+     */
+    public static ImageIcon loadIcon(String fileName) {
+        // 1. Define the internal path
+        String path = "/images/" + fileName; 
+        
+        // 2. Use the ClassLoader to find the resource URL in the JAR/Classpath
+        URL iconURL = ResourceLoader.class.getResource(path);
+
+        if (iconURL != null) {
+            // 3. If found, create the ImageIcon
+            return new ImageIcon(iconURL);
+        } else {
+            // Log an error if the file isn't found (check your /images/ folder!)
+            System.err.println("Icon not found on classpath: " + path);
+            return null;
+        }
+    }
+}
+
+
+// How to call it
+
+// Correct Way (Loads UNDO.png from the application's internal structure)
+import com.espaneg.utils.ResourceLoader; // will need this import!
+
+// ... later, in the toolbar setup:
+ImageIcon undoIcon = ResourceLoader.loadIcon("UNDO.png"); 
+// Now, use 'undoIcon' to create the button/icon on the toolbar.
+
