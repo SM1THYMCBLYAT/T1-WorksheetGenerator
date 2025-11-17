@@ -11,7 +11,7 @@ public class WorksheetSettings {
     private int gridSize = 20; // Default size in pixels
     private Color gridColor = new Color(229, 20, 20); // Default grid color
     private float gridOpacity = 60.0f; // Stored as a percentage (0 to 100)
-
+//git
     // --- Other Settings (Example placeholders) ---
     private int fontSize = 16;
     private String worksheetTitle = "New Worksheet";
