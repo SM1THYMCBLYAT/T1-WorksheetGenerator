@@ -4,19 +4,9 @@ import com.espaneg.model.WorksheetSettings;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Service class responsible for generating the actual content items
- * for a worksheet based on the user's settings.
- */
 public class WorksheetService {
 
-    /**
-     * Generates a list of string content items for the worksheet.
-     *
-     * @param settings The WorksheetSettings object containing configuration data.
-     * @param count The number of content items to generate.
-     * @return A List of Strings, where each string is a generated worksheet item.
-     */
+
     public List<String> generateContent(WorksheetSettings settings, int count) {
         List<String> contentList = new ArrayList<>();
         String baseTypeDescription;
