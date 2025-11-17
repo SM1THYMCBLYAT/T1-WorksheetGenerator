@@ -7,6 +7,7 @@ import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.io.File;
+import javax.swing.JColorChooser;
 
 public class WorksheetGenerator {
 
@@ -19,7 +20,7 @@ public class WorksheetGenerator {
         frame.setLocationRelativeTo(null);
 
         // --- ICON FIX 1: Logo loading ---
-        ImageIcon logo = ResourceLoader.loadIcon("LOGO2.png" );
+        ImageIcon logo = ResourceLoader.loadIcon("LOGO2.png");
         if (logo != null) {
             frame.setIconImage(logo.getImage());
         }
@@ -71,12 +72,14 @@ public class WorksheetGenerator {
         canvas.setBorder(new LineBorder(new Color(170, 170, 255), 2, true));
         canvas.setBounds(430, 140, 550, 650);
         background.add(canvas);
+        com.espaneg.model.WorksheetSettings settings =
+                new com.espaneg.model.WorksheetSettings("Default", "Tracing Letters", 20);
 
         // ============================================================
         // ADD SIDEBAR SECTIONS
         // ============================================================
         leftContent.add(createStudentDetailsSection(canvas));
-        leftContent.add(gridSection());
+        leftContent.add(gridSection(canvas, settings));
         leftContent.add(fontSection());
         leftContent.add(importContentSection());
         leftContent.add(colorPaletteSection());
@@ -232,9 +235,9 @@ public class WorksheetGenerator {
         return sectionPanel;
     }
     // ============================================================
-// GRID SECTION (UI ONLY – NOW WITH ORIENTATION CHECKBOXES)
+// GRID SECTION (NOW FUNCTIONAL – CONNECTED TO WORKSHEETSETTINGS)
 // ============================================================
-    public static JPanel gridSection() {
+    public static JPanel gridSection(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
 
         JPanel outer = new JPanel(new BorderLayout());
         outer.setBackground(Color.WHITE);
@@ -286,7 +289,6 @@ public class WorksheetGenerator {
             }
         });
 
-        // If Vertical or Horizontal is selected, unselect "None"
         verticalGrid.addActionListener(e -> {
             if (verticalGrid.isSelected()) noneGrid.setSelected(false);
         });
@@ -301,8 +303,7 @@ public class WorksheetGenerator {
         JLabel sizeLabel = new JLabel("Grid Size:");
         sizeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
-        SpinnerNumberModel sizeModel =
-                new SpinnerNumberModel(20, 5, 100, 1);
+        SpinnerNumberModel sizeModel = new SpinnerNumberModel(20, 5, 100, 1);
         JSpinner sizeSpinner = new JSpinner(sizeModel);
         sizeSpinner.setMaximumSize(new Dimension(200, 30));
 
@@ -313,10 +314,20 @@ public class WorksheetGenerator {
         colorButton.setFocusPainted(false);
         colorButton.setMaximumSize(new Dimension(200, 30));
 
+        // Store selected color
+        final Color[] selectedColor = {new Color(229, 20, 20)}; // default red
+
+        colorButton.addActionListener(e -> {
+            Color chosen = JColorChooser.showDialog(null, "Choose Grid Color", selectedColor[0]);
+            if (chosen != null) {
+                selectedColor[0] = chosen;
+            }
+        });
+
         // ------------------------
         // Grid Opacity Slider
         // ------------------------
-        JLabel opacityLabel = new JLabel("Grid Opacity:");
+        JLabel opacityLabel = new JLabel("Grid Opacity: 60%");
         opacityLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
         JSlider opacitySlider = new JSlider(0, 100, 60);
@@ -324,12 +335,31 @@ public class WorksheetGenerator {
         opacitySlider.setMajorTickSpacing(20);
         opacitySlider.setPaintTicks(true);
 
+        opacitySlider.addChangeListener(e -> {
+            opacityLabel.setText("Grid Opacity: " + opacitySlider.getValue() + "%");
+        });
+
         // ------------------------
-        // Apply Button
+        // Apply Button - THIS IS THE KEY CONNECTION
         // ------------------------
         JButton applyButton = new JButton("Apply Grid to Canvas");
         applyButton.setFocusPainted(false);
         applyButton.setMaximumSize(new Dimension(200, 30));
+
+        applyButton.addActionListener(e -> {
+            // Update WorksheetSettings with current UI values
+            boolean show = showGrid.isSelected();
+            boolean vertical = verticalGrid.isSelected();
+            boolean horizontal = horizontalGrid.isSelected();
+            int size = (int) sizeSpinner.getValue();
+            Color color = selectedColor[0];
+            float opacity = opacitySlider.getValue();
+
+            settings.updateGridSettings(show, vertical, horizontal, size, color, opacity);
+
+            // Redraw the canvas
+            drawGridOnCanvas(canvas, settings);
+        });
 
         // ===== Add components to panel =====
         content.add(showGrid);
@@ -369,6 +399,74 @@ public class WorksheetGenerator {
 
         return outer;
     }
+
+
+    // ============================================================
+// DRAW GRID ON CANVAS (RENDERING LOGIC)
+// ============================================================
+    private static void drawGridOnCanvas(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
+        // Remove existing content
+        canvas.removeAll();
+
+        // Create a custom panel that draws the grid
+        JPanel gridPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+
+                if (!settings.isShowGrid()) {
+                    return; // Don't draw if grid is disabled
+                }
+
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Get settings
+                int gridSize = settings.getGridSize();
+                Color baseColor = settings.getGridColor();
+                float opacity = settings.getGridOpacity();
+
+                // Apply opacity to color
+                int alpha = Math.round((opacity / 100.0f) * 255);
+                Color gridColor = new Color(
+                        baseColor.getRed(),
+                        baseColor.getGreen(),
+                        baseColor.getBlue(),
+                        alpha
+                );
+
+                g2d.setColor(gridColor);
+                g2d.setStroke(new BasicStroke(1.0f));
+
+                int width = getWidth();
+                int height = getHeight();
+
+                // Draw vertical lines
+                if (settings.isGridVertical()) {
+                    for (int x = gridSize; x < width; x += gridSize) {
+                        g2d.drawLine(x, 0, x, height);
+                    }
+                }
+
+                // Draw horizontal lines
+                if (settings.isGridHorizontal()) {
+                    for (int y = gridSize; y < height; y += gridSize) {
+                        g2d.drawLine(0, y, width, y);
+                    }
+                }
+            }
+        };
+
+        gridPanel.setBackground(Color.WHITE);
+        gridPanel.setLayout(new BorderLayout());
+
+        canvas.setLayout(new BorderLayout());
+        canvas.add(gridPanel, BorderLayout.CENTER);
+
+        canvas.revalidate();
+        canvas.repaint();
+    }
     // ============================================================
 // FONT SECTION (UI ONLY – FULL CONTROLS AND PREVIEW)
 // ============================================================
@@ -397,7 +495,7 @@ public class WorksheetGenerator {
         JLabel familyLabel = new JLabel("Font Family:");
         familyLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
-        String[] families = { "SansSerif", "Serif", "Monospaced", "Dialog", "Arial" };
+        String[] families = {"SansSerif", "Serif", "Monospaced", "Dialog", "Arial"};
         JComboBox<String> familyBox = new JComboBox<>(families);
         familyBox.setMaximumSize(new Dimension(200, 30));
 
@@ -513,6 +611,7 @@ public class WorksheetGenerator {
 
         return outer;
     }
+
     // ============================================================
 // IMPORT CONTENT SECTION (UI ONLY – Logo, Images, Text, B/W-Color)
 // ============================================================
@@ -708,6 +807,7 @@ public class WorksheetGenerator {
 
         return outer;
     }
+
     // ============================================================
 // COLOUR PALETTE SECTION (UI ONLY – Pickers, Swatches, Reset)
 // ============================================================
@@ -771,12 +871,12 @@ public class WorksheetGenerator {
         swatchPanel.setBackground(Color.WHITE);
 
         Color[] swatches = {
-                new Color(0,0,0), new Color(255,255,255),
-                new Color(255,0,0), new Color(0,128,0),
-                new Color(0,0,255), new Color(255,165,0),
-                new Color(128,0,128), new Color(0,139,139),
-                new Color(255,20,147), new Color(139,69,19),
-                new Color(75,0,130), new Color(173,255,47)
+                new Color(0, 0, 0), new Color(255, 255, 255),
+                new Color(255, 0, 0), new Color(0, 128, 0),
+                new Color(0, 0, 255), new Color(255, 165, 0),
+                new Color(128, 0, 128), new Color(0, 139, 139),
+                new Color(255, 20, 147), new Color(139, 69, 19),
+                new Color(75, 0, 130), new Color(173, 255, 47)
         };
 
         for (Color c : swatches) {
@@ -862,6 +962,7 @@ public class WorksheetGenerator {
 
         return outer;
     }
+
     // ============================================================
 // CALCULATIONS SECTION (UI ONLY – ranges, ops, problem count)
 // ============================================================
@@ -983,6 +1084,7 @@ public class WorksheetGenerator {
 
         return outer;
     }
+
     // ============================================================
 // QUICK FILL SECTION (UI ONLY – BUTTON GRID LIKE SAMPLE)
 // ============================================================
@@ -1077,6 +1179,7 @@ public class WorksheetGenerator {
 
         return outer;
     }
+
     // ============================================================
 // TEMPLATE LAYOUT SECTION (UI ONLY – 2-COLUMN TEMPLATE BUTTONS)
 // ============================================================
@@ -1216,9 +1319,17 @@ public class WorksheetGenerator {
     // ============================================================
     public static DocumentListener simpleListener(Runnable run) {
         return new DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { run.run(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { run.run(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { run.run(); }
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                run.run();
+            }
+
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                run.run();
+            }
+
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                run.run();
+            }
         };
     }
 
@@ -1281,8 +1392,9 @@ public class WorksheetGenerator {
 
     /**
      * **FIXED:** Now uses ResourceLoader to correctly load the icon from the classpath.
+     *
      * @param filename The name of the icon file (e.g., "UNDO.png").
-     * @param x The x-coordinate for setting bounds.
+     * @param x        The x-coordinate for setting bounds.
      * @return A JLabel containing the icon (or a text placeholder if missing).
      */
     public static JLabel toolbarIcon(String filename, int x) {
