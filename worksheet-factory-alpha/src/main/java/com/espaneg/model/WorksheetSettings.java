@@ -9,7 +9,7 @@ public class WorksheetSettings {
     private boolean gridVertical = true;
     private boolean gridHorizontal = false;
     private int gridSize = 20; // Default size in pixels
-    private Color gridColor = new Color(170, 170, 255); // Default grid color
+    private Color gridColor = new Color(229, 20, 20); // Default grid color
     private float gridOpacity = 60.0f; // Stored as a percentage (0 to 100)
 
     // --- Other Settings (Example placeholders) ---

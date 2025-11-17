@@ -21,7 +21,7 @@ public class WorksheetService {
         List<String> contentList = new ArrayList<>();
         String baseTypeDescription;
 
-        // FIX: Use settings.getWorksheetType() (or similar), NOT settings.getGridSize()
+
         // Grid size is a visual dimension, not a content type.
         String worksheetType = settings.getWorksheetType();
 
