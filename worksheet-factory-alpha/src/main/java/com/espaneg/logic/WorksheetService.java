@@ -1,7 +1,6 @@
 package com.espaneg.logic;
 
 import com.espaneg.model.WorksheetSettings;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,13 +10,14 @@ public class WorksheetService {
         List<String> contentList = new ArrayList<>();
         String baseTypeDescription;
 
-        // Uses data from the POJO to determine content
+        // Determine the base description based on the worksheet type selected in the UI
         switch (settings.getWorksheetType()) {
             case "Tracing Letters":
                 baseTypeDescription = "Trace ABC for: ";
                 break;
             case "Math Problems":
-                baseTypeDescription = "Math Problem ";
+                // Use fontSize (proxy for difficulty) for dynamic content
+                baseTypeDescription = "Level " + settings.getFontSize() + " Math Problem ";
                 break;
             case "Counting":
                 baseTypeDescription = "Count the stars ";
@@ -27,13 +27,15 @@ public class WorksheetService {
                 break;
         }
 
-
+        // Generate the specified number of content items
         for (int i = 1; i <= count; i++) {
-            String item = String.format("%s%d - Name: %s (Type: %s, Size: %d)",
-                    baseTypeDescription, i,
-                    settings.getStudentName(),
-                    settings.getWorksheetType(),
-                    settings.getFontSize());
+            String item = baseTypeDescription + i;
+
+            // Personalize the content if the student name is available
+            String name = settings.getStudentName();
+            if (name != null && !name.isEmpty()) {
+                item += " (for " + name + ")";
+            }
             contentList.add(item);
         }
 

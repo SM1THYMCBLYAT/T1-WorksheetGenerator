@@ -6,6 +6,7 @@ import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.io.File;
 
 public class
 WorksheetGenerator {
@@ -76,12 +77,14 @@ WorksheetGenerator {
         // ADD SIDEBAR SECTIONS
         // ============================================================
         leftContent.add(createStudentDetailsSection(canvas));
-        leftContent.add(section("Grid"));
-        leftContent.add(section("Font"));
-        leftContent.add(section("Import Content"));
-        leftContent.add(section("Template Layouts"));
-        leftContent.add(section("Colour Palette"));
-        leftContent.add(section("Calculations"));
+        leftContent.add(gridSection());
+        leftContent.add(fontSection());
+        leftContent.add(importContentSection());
+        leftContent.add(colorPaletteSection());
+        leftContent.add(calculationsSection());
+        leftContent.add(quickFillSection());
+        leftContent.add(templateSection());
+        
         leftContent.add(section(""));
         leftContent.add(section("Translate"));
 
@@ -136,9 +139,6 @@ WorksheetGenerator {
         toolbar.add(toolbarIcon("ALIGNCENTER.png", 260));
         toolbar.add(toolbarIcon("ALIGNRIGHT.png", 330));
         toolbar.add(toolbarIcon("ARROWRIGHT.png", 400));
-
-        // Removed the redundant/unused ResourceLoader call here:
-        //ImageIcon undoIcon = ResourceLoader.loadIcon("UNDO.png");
 
         // ============================================================
         // CHATBOT
@@ -232,22 +232,984 @@ WorksheetGenerator {
 
         return sectionPanel;
     }
+    // ============================================================
+// GRID SECTION (UI ONLY – NOW WITH ORIENTATION CHECKBOXES)
+// ============================================================
+    public static JPanel gridSection() {
+
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(Color.WHITE);
+        outer.setMaximumSize(new Dimension(250, 350));
+
+        JButton header = new JButton("▼  Grid");
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+        header.setFocusPainted(false);
+        header.setContentAreaFilled(false);
+        header.setBorderPainted(false);
+        header.setHorizontalAlignment(SwingConstants.LEFT);
+
+        // ===== CONTENT PANEL =====
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setVisible(false);
+
+        // ------------------------
+        // Show Grid Checkbox
+        // ------------------------
+        JCheckBox showGrid = new JCheckBox("Show Grid");
+        showGrid.setBackground(Color.WHITE);
+        showGrid.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        // ------------------------
+        // Grid orientation checkboxes
+        // ------------------------
+        JLabel orientationLabel = new JLabel("Grid Orientation:");
+        orientationLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        JCheckBox verticalGrid = new JCheckBox("Vertical");
+        JCheckBox horizontalGrid = new JCheckBox("Horizontal");
+        JCheckBox noneGrid = new JCheckBox("None");
+
+        verticalGrid.setBackground(Color.WHITE);
+        horizontalGrid.setBackground(Color.WHITE);
+        noneGrid.setBackground(Color.WHITE);
+
+        verticalGrid.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        horizontalGrid.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        noneGrid.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        // If "None" is selected, disable the others
+        noneGrid.addActionListener(e -> {
+            if (noneGrid.isSelected()) {
+                verticalGrid.setSelected(false);
+                horizontalGrid.setSelected(false);
+            }
+        });
+
+        // If Vertical or Horizontal is selected, unselect "None"
+        verticalGrid.addActionListener(e -> {
+            if (verticalGrid.isSelected()) noneGrid.setSelected(false);
+        });
+
+        horizontalGrid.addActionListener(e -> {
+            if (horizontalGrid.isSelected()) noneGrid.setSelected(false);
+        });
+
+        // ------------------------
+        // Grid Size Spinner
+        // ------------------------
+        JLabel sizeLabel = new JLabel("Grid Size:");
+        sizeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        SpinnerNumberModel sizeModel =
+                new SpinnerNumberModel(20, 5, 100, 1);
+        JSpinner sizeSpinner = new JSpinner(sizeModel);
+        sizeSpinner.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // Grid Color Picker Button
+        // ------------------------
+        JButton colorButton = new JButton("Choose Grid Color");
+        colorButton.setFocusPainted(false);
+        colorButton.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // Grid Opacity Slider
+        // ------------------------
+        JLabel opacityLabel = new JLabel("Grid Opacity:");
+        opacityLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        JSlider opacitySlider = new JSlider(0, 100, 60);
+        opacitySlider.setMaximumSize(new Dimension(200, 40));
+        opacitySlider.setMajorTickSpacing(20);
+        opacitySlider.setPaintTicks(true);
+
+        // ------------------------
+        // Apply Button
+        // ------------------------
+        JButton applyButton = new JButton("Apply Grid to Canvas");
+        applyButton.setFocusPainted(false);
+        applyButton.setMaximumSize(new Dimension(200, 30));
+
+        // ===== Add components to panel =====
+        content.add(showGrid);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(orientationLabel);
+        content.add(verticalGrid);
+        content.add(horizontalGrid);
+        content.add(noneGrid);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(sizeLabel);
+        content.add(sizeSpinner);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(colorButton);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(opacityLabel);
+        content.add(opacitySlider);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(applyButton);
+        content.add(Box.createVerticalStrut(10));
+
+        // ===== Expand/Collapse Toggle =====
+        header.addActionListener(e -> {
+            boolean visible = content.isVisible();
+            content.setVisible(!visible);
+            header.setText((visible ? "▼  " : "▲  ") + "Grid");
+            outer.revalidate();
+            outer.repaint();
+        });
+
+        outer.add(header, BorderLayout.NORTH);
+        outer.add(content, BorderLayout.CENTER);
+
+        return outer;
+    }
+    // ============================================================
+// FONT SECTION (UI ONLY – FULL CONTROLS AND PREVIEW)
+// ============================================================
+    public static JPanel fontSection() {
+
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(Color.WHITE);
+        outer.setMaximumSize(new Dimension(250, 350));
+
+        JButton header = new JButton("▼  Font");
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+        header.setFocusPainted(false);
+        header.setContentAreaFilled(false);
+        header.setBorderPainted(false);
+        header.setHorizontalAlignment(SwingConstants.LEFT);
+
+        // ===== CONTENT PANEL =====
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setVisible(false);
+
+        // ------------------------
+        // FONT FAMILY DROPDOWN
+        // ------------------------
+        JLabel familyLabel = new JLabel("Font Family:");
+        familyLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        String[] families = { "SansSerif", "Serif", "Monospaced", "Dialog", "Arial" };
+        JComboBox<String> familyBox = new JComboBox<>(families);
+        familyBox.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // FONT SIZE SPINNER
+        // ------------------------
+        JLabel sizeLabel = new JLabel("Font Size:");
+        sizeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        SpinnerNumberModel sizeModel =
+                new SpinnerNumberModel(16, 8, 72, 1);
+        JSpinner sizeSpinner = new JSpinner(sizeModel);
+        sizeSpinner.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // STYLE TOGGLES
+        // ------------------------
+        JCheckBox bold = new JCheckBox("Bold");
+        JCheckBox italic = new JCheckBox("Italic");
+        JCheckBox underline = new JCheckBox("Underline");
+
+        bold.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        italic.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        underline.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        bold.setBackground(Color.WHITE);
+        italic.setBackground(Color.WHITE);
+        underline.setBackground(Color.WHITE);
+
+        // ------------------------
+        // ALIGNMENT BUTTONS
+        // ------------------------
+        JLabel alignLabel = new JLabel("Alignment:");
+        alignLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        JButton alignLeft = new JButton("Left");
+        JButton alignCenter = new JButton("Center");
+        JButton alignRight = new JButton("Right");
+
+        alignLeft.setFocusPainted(false);
+        alignCenter.setFocusPainted(false);
+        alignRight.setFocusPainted(false);
+
+        alignLeft.setMaximumSize(new Dimension(200, 28));
+        alignCenter.setMaximumSize(new Dimension(200, 28));
+        alignRight.setMaximumSize(new Dimension(200, 28));
+
+        // ------------------------
+        // LIVE PREVIEW LABEL
+        // ------------------------
+        JLabel previewLabel = new JLabel("Preview Text");
+        previewLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        previewLabel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        previewLabel.setOpaque(true);
+        previewLabel.setBackground(new Color(245, 245, 245));
+        previewLabel.setMaximumSize(new Dimension(200, 60));
+
+        // ------------------------
+        // LIVE UPDATE LOGIC
+        // ------------------------
+        Runnable updatePreview = () -> {
+            int size = (int) sizeSpinner.getValue();
+            String family = (String) familyBox.getSelectedItem();
+
+            int style = Font.PLAIN;
+            if (bold.isSelected()) style |= Font.BOLD;
+            if (italic.isSelected()) style |= Font.ITALIC;
+
+            Font f = new Font(family, style, size);
+            previewLabel.setFont(f);
+        };
+
+        familyBox.addActionListener(e -> updatePreview.run());
+        sizeSpinner.addChangeListener(e -> updatePreview.run());
+        bold.addActionListener(e -> updatePreview.run());
+        italic.addActionListener(e -> updatePreview.run());
+        underline.addActionListener(e -> updatePreview.run());
+
+        // ===== ADD COMPONENTS =====
+        content.add(familyLabel);
+        content.add(familyBox);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(sizeLabel);
+        content.add(sizeSpinner);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(bold);
+        content.add(italic);
+        content.add(underline);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(alignLabel);
+        content.add(alignLeft);
+        content.add(alignCenter);
+        content.add(alignRight);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(previewLabel);
+        content.add(Box.createVerticalStrut(10));
+
+        // ===== Expand/Collapse Toggle =====
+        header.addActionListener(e -> {
+            boolean visible = content.isVisible();
+            content.setVisible(!visible);
+            header.setText((visible ? "▼  " : "▲  ") + "Font");
+            outer.revalidate();
+            outer.repaint();
+        });
+
+        outer.add(header, BorderLayout.NORTH);
+        outer.add(content, BorderLayout.CENTER);
+
+        return outer;
+    }
+    // ============================================================
+// IMPORT CONTENT SECTION (UI ONLY – Logo, Images, Text, B/W-Color)
+// ============================================================
+    public static JPanel importContentSection() {
+
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(Color.WHITE);
+        outer.setMaximumSize(new Dimension(250, 380));
+
+        JButton header = new JButton("▼  Import Content");
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+        header.setFocusPainted(false);
+        header.setContentAreaFilled(false);
+        header.setBorderPainted(false);
+        header.setHorizontalAlignment(SwingConstants.LEFT);
+
+        // ===== CONTENT PANEL =====
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setVisible(false);
+
+        // ------------------------
+        // ADD LOGO BUTTON
+        // ------------------------
+        JButton addLogo = new JButton("Add Logo");
+        addLogo.setFocusPainted(false);
+        addLogo.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // ADD MULTIPLE IMAGES BUTTON
+        // ------------------------
+        JButton addImages = new JButton("Add Images");
+        addImages.setFocusPainted(false);
+        addImages.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // IMPORT IMAGE (single)
+        // ------------------------
+        JButton importImage = new JButton("Upload Image");
+        importImage.setFocusPainted(false);
+        importImage.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // IMPORT TEXT FILE
+        // ------------------------
+        JButton importTextFile = new JButton("Upload Text File");
+        importTextFile.setFocusPainted(false);
+        importTextFile.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // B/W OR COLOR RADIO BUTTONS
+        // ------------------------
+        JLabel modeLabel = new JLabel("Colour Mode:");
+        modeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        JRadioButton colorMode = new JRadioButton("Color");
+        JRadioButton bwMode = new JRadioButton("Black & White");
+
+        ButtonGroup modeGroup = new ButtonGroup();
+        modeGroup.add(colorMode);
+        modeGroup.add(bwMode);
+
+        colorMode.setBackground(Color.WHITE);
+        bwMode.setBackground(Color.WHITE);
+
+        colorMode.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        bwMode.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        // Default = Color
+        colorMode.setSelected(true);
+
+        // ------------------------
+        // PASTE TEXT AREA
+        // ------------------------
+        JLabel pasteLabel = new JLabel("Paste Text:");
+        pasteLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        JTextArea pasteArea = new JTextArea(4, 20);
+        pasteArea.setLineWrap(true);
+        pasteArea.setWrapStyleWord(true);
+        JScrollPane pasteScroll = new JScrollPane(pasteArea);
+        pasteScroll.setMaximumSize(new Dimension(220, 70));
+
+        // ------------------------
+        // PREVIEW AREA
+        // ------------------------
+        JLabel previewLabel = new JLabel("No content imported");
+        previewLabel.setOpaque(true);
+        previewLabel.setBackground(new Color(245, 245, 245));
+        previewLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        previewLabel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        previewLabel.setMaximumSize(new Dimension(220, 60));
+
+        // ------------------------
+        // REMOVE CONTENT BUTTON
+        // ------------------------
+        JButton removeButton = new JButton("Remove Content");
+        removeButton.setFocusPainted(false);
+        removeButton.setMaximumSize(new Dimension(200, 30));
+
+        // ===== ACTION LOGIC =====
+
+        addLogo.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            int result = chooser.showOpenDialog(null);
+
+            if (result == JFileChooser.APPROVE_OPTION) {
+                previewLabel.setText("Logo Added: " + chooser.getSelectedFile().getName());
+            }
+        });
+
+        addImages.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            chooser.setMultiSelectionEnabled(true);
+            int result = chooser.showOpenDialog(null);
+
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File[] files = chooser.getSelectedFiles();
+                previewLabel.setText("Images Added: " + files.length);
+            }
+        });
+
+        importImage.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            int result = chooser.showOpenDialog(null);
+
+            if (result == JFileChooser.APPROVE_OPTION) {
+                previewLabel.setText("Imported Image: " + chooser.getSelectedFile().getName());
+            }
+        });
+
+        importTextFile.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            int result = chooser.showOpenDialog(null);
+
+            if (result == JFileChooser.APPROVE_OPTION) {
+                previewLabel.setText("Imported Text File: " + chooser.getSelectedFile().getName());
+            }
+        });
+
+        pasteArea.getDocument().addDocumentListener(simpleListener(() -> {
+            if (!pasteArea.getText().trim().isEmpty()) {
+                previewLabel.setText("<html><b>Pasted Text:</b><br>" +
+                        pasteArea.getText().replace("\n", "<br>") + "</html>");
+            }
+        }));
+
+        removeButton.addActionListener(e -> {
+            pasteArea.setText("");
+            previewLabel.setText("No content imported");
+        });
+
+        // ===== ADD COMPONENTS =====
+        content.add(addLogo);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(addImages);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(importImage);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(importTextFile);
+        content.add(Box.createVerticalStrut(12));
+
+        content.add(modeLabel);
+        content.add(colorMode);
+        content.add(bwMode);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(pasteLabel);
+        content.add(pasteScroll);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(previewLabel);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(removeButton);
+        content.add(Box.createVerticalStrut(10));
+
+        // ===== EXPAND/COLLAPSE =====
+        header.addActionListener(e -> {
+            boolean visible = content.isVisible();
+            content.setVisible(!visible);
+            header.setText((visible ? "▼  " : "▲  ") + "Import Content");
+            outer.revalidate();
+            outer.repaint();
+        });
+
+        outer.add(header, BorderLayout.NORTH);
+        outer.add(content, BorderLayout.CENTER);
+
+        return outer;
+    }
+    // ============================================================
+// COLOUR PALETTE SECTION (UI ONLY – Pickers, Swatches, Reset)
+// ============================================================
+    public static JPanel colorPaletteSection() {
+
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(Color.WHITE);
+        outer.setMaximumSize(new Dimension(250, 350));
+
+        JButton header = new JButton("▼  Colour Palette");
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+        header.setFocusPainted(false);
+        header.setContentAreaFilled(false);
+        header.setBorderPainted(false);
+        header.setHorizontalAlignment(SwingConstants.LEFT);
+
+        // ===== CONTENT PANEL =====
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setVisible(false);
+
+        // ------------------------
+        // TEXT COLOR PICKER
+        // ------------------------
+        JButton textColorButton = new JButton("Choose Text Colour");
+        textColorButton.setFocusPainted(false);
+        textColorButton.setMaximumSize(new Dimension(200, 30));
+
+        JLabel textColorPreview = new JLabel("Text Colour Preview");
+        textColorPreview.setOpaque(true);
+        textColorPreview.setBackground(Color.BLACK);
+        textColorPreview.setForeground(Color.WHITE);
+        textColorPreview.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        textColorPreview.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
+        textColorPreview.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // BACKGROUND COLOR PICKER
+        // ------------------------
+        JButton backgroundColorButton = new JButton("Choose Background Colour");
+        backgroundColorButton.setFocusPainted(false);
+        backgroundColorButton.setMaximumSize(new Dimension(200, 30));
+
+        JLabel bgColorPreview = new JLabel("Background Preview");
+        bgColorPreview.setOpaque(true);
+        bgColorPreview.setBackground(Color.WHITE);
+        bgColorPreview.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        bgColorPreview.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
+        bgColorPreview.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // PRESET SWATCH COLORS
+        // ------------------------
+        JLabel swatchLabel = new JLabel("Preset Colours:");
+        swatchLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        JPanel swatchPanel = new JPanel();
+        swatchPanel.setLayout(new GridLayout(2, 6, 5, 5));
+        swatchPanel.setMaximumSize(new Dimension(220, 60));
+        swatchPanel.setBackground(Color.WHITE);
+
+        Color[] swatches = {
+                new Color(0,0,0), new Color(255,255,255),
+                new Color(255,0,0), new Color(0,128,0),
+                new Color(0,0,255), new Color(255,165,0),
+                new Color(128,0,128), new Color(0,139,139),
+                new Color(255,20,147), new Color(139,69,19),
+                new Color(75,0,130), new Color(173,255,47)
+        };
+
+        for (Color c : swatches) {
+            JLabel sw = new JLabel();
+            sw.setOpaque(true);
+            sw.setBackground(c);
+            sw.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+            sw.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+            sw.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent evt) {
+                    textColorPreview.setBackground(c);
+                    textColorPreview.setForeground(c.equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
+                }
+            });
+
+            swatchPanel.add(sw);
+        }
+
+        // ------------------------
+        // APPLY + RESET BUTTONS
+        // ------------------------
+        JButton applyButton = new JButton("Apply Colours");
+        applyButton.setFocusPainted(false);
+        applyButton.setMaximumSize(new Dimension(200, 30));
+
+        JButton resetButton = new JButton("Reset Colours");
+        resetButton.setFocusPainted(false);
+        resetButton.setMaximumSize(new Dimension(200, 30));
+
+        // ===== ACTIONS =====
+
+        textColorButton.addActionListener(e -> {
+            Color chosen = JColorChooser.showDialog(null, "Choose Text Colour", Color.BLACK);
+            if (chosen != null) {
+                textColorPreview.setBackground(chosen);
+                textColorPreview.setForeground(chosen.equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
+            }
+        });
+
+        backgroundColorButton.addActionListener(e -> {
+            Color chosen = JColorChooser.showDialog(null, "Choose Background Colour", Color.WHITE);
+            if (chosen != null) {
+                bgColorPreview.setBackground(chosen);
+            }
+        });
+
+        resetButton.addActionListener(e -> {
+            textColorPreview.setBackground(Color.BLACK);
+            textColorPreview.setForeground(Color.WHITE);
+            bgColorPreview.setBackground(Color.WHITE);
+        });
+
+        // ===== ADD COMPONENTS =====
+        content.add(textColorButton);
+        content.add(textColorPreview);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(backgroundColorButton);
+        content.add(bgColorPreview);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(swatchLabel);
+        content.add(swatchPanel);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(applyButton);
+        content.add(resetButton);
+        content.add(Box.createVerticalStrut(10));
+
+        // ===== EXPAND/COLLAPSE =====
+        header.addActionListener(e -> {
+            boolean visible = content.isVisible();
+            content.setVisible(!visible);
+            header.setText((visible ? "▼  " : "▲  ") + "Colour Palette");
+            outer.revalidate();
+            outer.repaint();
+        });
+
+        outer.add(header, BorderLayout.NORTH);
+        outer.add(content, BorderLayout.CENTER);
+
+        return outer;
+    }
+    // ============================================================
+// CALCULATIONS SECTION (UI ONLY – ranges, ops, problem count)
+// ============================================================
+    public static JPanel calculationsSection() {
+
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(Color.WHITE);
+        outer.setMaximumSize(new Dimension(250, 350));
+
+        JButton header = new JButton("▼  Calculations");
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+        header.setFocusPainted(false);
+        header.setContentAreaFilled(false);
+        header.setBorderPainted(false);
+        header.setHorizontalAlignment(SwingConstants.LEFT);
+
+        // ===== CONTENT PANEL =====
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setVisible(false);
+
+        // ------------------------
+        // NUMBER RANGE CHECKBOXES
+        // ------------------------
+        JLabel rangeLabel = new JLabel("Number Range:");
+        rangeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        JCheckBox range20 = new JCheckBox("1 - 20");
+        JCheckBox range50 = new JCheckBox("1 - 50");
+        JCheckBox range100 = new JCheckBox("1 - 100");
+
+        range20.setBackground(Color.WHITE);
+        range50.setBackground(Color.WHITE);
+        range100.setBackground(Color.WHITE);
+
+        range20.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        range50.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        range100.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        // ------------------------
+        // PROBLEM COUNT SPINNER
+        // ------------------------
+        JLabel problemLabel = new JLabel("How many problems?");
+        problemLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        SpinnerNumberModel problemModel =
+                new SpinnerNumberModel(10, 1, 50, 1);
+        JSpinner problemSpinner = new JSpinner(problemModel);
+        problemSpinner.setMaximumSize(new Dimension(200, 30));
+
+        // ------------------------
+        // OPERATION OPTIONS
+        // ------------------------
+        JLabel opsLabel = new JLabel("Operations:");
+        opsLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        JCheckBox addOp = new JCheckBox("Addition (+)");
+        JCheckBox subOp = new JCheckBox("Subtraction (−)");
+        JCheckBox mulOp = new JCheckBox("Multiplication (×)");
+        JCheckBox divOp = new JCheckBox("Division (÷)");
+
+        addOp.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        subOp.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        mulOp.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        divOp.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        addOp.setBackground(Color.WHITE);
+        subOp.setBackground(Color.WHITE);
+        mulOp.setBackground(Color.WHITE);
+        divOp.setBackground(Color.WHITE);
+
+        // ------------------------
+        // GENERATE BUTTON (UI ONLY)
+        // ------------------------
+        JButton generateButton = new JButton("Generate Problems");
+        generateButton.setFocusPainted(false);
+        generateButton.setMaximumSize(new Dimension(200, 30));
+
+        // ===== ACTION PLACEHOLDER =====
+        generateButton.addActionListener(e -> {
+            // UI only — no functionality yet
+            JOptionPane.showMessageDialog(null,
+                    "This will generate math problems (feature coming later).");
+        });
+
+        // ===== ADD COMPONENTS =====
+        content.add(rangeLabel);
+        content.add(range20);
+        content.add(range50);
+        content.add(range100);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(problemLabel);
+        content.add(problemSpinner);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(opsLabel);
+        content.add(addOp);
+        content.add(subOp);
+        content.add(mulOp);
+        content.add(divOp);
+        content.add(Box.createVerticalStrut(15));
+
+        content.add(generateButton);
+        content.add(Box.createVerticalStrut(10));
+
+        // ===== EXPAND / COLLAPSE =====
+        header.addActionListener(e -> {
+            boolean visible = content.isVisible();
+            content.setVisible(!visible);
+            header.setText((visible ? "▼  " : "▲  ") + "Calculations");
+            outer.revalidate();
+            outer.repaint();
+        });
+
+        outer.add(header, BorderLayout.NORTH);
+        outer.add(content, BorderLayout.CENTER);
+
+        return outer;
+    }
+    // ============================================================
+// QUICK FILL SECTION (UI ONLY – BUTTON GRID LIKE SAMPLE)
+// ============================================================
+    public static JPanel quickFillSection() {
+
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(Color.WHITE);
+        outer.setMaximumSize(new Dimension(250, 500));
+
+        JButton header = new JButton("▼  Quick Fill");
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+        header.setFocusPainted(false);
+        header.setContentAreaFilled(false);
+        header.setBorderPainted(false);
+        header.setHorizontalAlignment(SwingConstants.LEFT);
+
+        // ===== CONTENT PANEL =====
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setVisible(false);
+
+        // ===== Two-column button panel =====
+        JPanel grid = new JPanel(new GridLayout(0, 2, 10, 10));
+        grid.setBackground(Color.WHITE);
+        grid.setMaximumSize(new Dimension(230, 350));
+
+        // Gradient button creator (LIGHT BLUE)
+        java.util.function.Function<String, JButton> makeButton = (text) -> {
+            JButton btn = new JButton(text) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g;
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                    GradientPaint gp = new GradientPaint(
+                            0, 0, new Color(150, 200, 255),   // light blue top
+                            getWidth(), getHeight(), new Color(90, 130, 255) // deeper blue bottom
+                    );
+
+                    g2.setPaint(gp);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+
+                    super.paintComponent(g);
+                }
+            };
+
+            btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+            btn.setForeground(Color.WHITE);
+            btn.setOpaque(false);
+            btn.setFocusPainted(false);
+            btn.setContentAreaFilled(false);
+            btn.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+            return btn;
+        };
+
+
+        // ===== ADD BUTTONS =====
+        grid.add(makeButton.apply("A-Z"));
+        grid.add(makeButton.apply("a-z"));
+
+        grid.add(makeButton.apply("1-20"));
+        grid.add(makeButton.apply("Sight Words"));
+
+        grid.add(makeButton.apply("Colors"));
+        grid.add(makeButton.apply("Animals"));
+
+        grid.add(makeButton.apply("CVC Words"));
+        grid.add(makeButton.apply("Shapes"));
+
+        grid.add(makeButton.apply("Addition"));
+        grid.add(makeButton.apply("Subtraction"));
+
+        grid.add(makeButton.apply("Count 1-10"));
+        grid.add(new JLabel()); // empty to keep grid aligned
+
+        content.add(Box.createVerticalStrut(10));
+        content.add(grid);
+        content.add(Box.createVerticalStrut(10));
+
+        // ===== EXPAND / COLLAPSE =====
+        header.addActionListener(e -> {
+            boolean visible = content.isVisible();
+            content.setVisible(!visible);
+            header.setText((visible ? "▼  " : "▲  ") + "Quick Fill");
+            outer.revalidate();
+            outer.repaint();
+        });
+
+        outer.add(header, BorderLayout.NORTH);
+        outer.add(content, BorderLayout.CENTER);
+
+        return outer;
+    }
+    // ============================================================
+// TEMPLATE LAYOUT SECTION (UI ONLY – 2-COLUMN TEMPLATE BUTTONS)
+// ============================================================
+    public static JPanel templateSection() {
+
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(Color.WHITE);
+        outer.setMaximumSize(new Dimension(250, 420));
+
+        JButton header = new JButton("▼  Template Layouts");
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+        header.setFocusPainted(false);
+        header.setContentAreaFilled(false);
+        header.setBorderPainted(false);
+        header.setHorizontalAlignment(SwingConstants.LEFT);
+
+        // ===== CONTENT PANEL =====
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setVisible(false);
+
+        // ===== 2-COLUMN GRID =====
+        JPanel grid = new JPanel(new GridLayout(0, 2, 10, 10));
+        grid.setBackground(Color.WHITE);
+        grid.setMaximumSize(new Dimension(230, 350));
+
+        // LIGHT BLUE BUTTON BUILDER
+        java.util.function.Function<String, JButton> makeButton = (text) -> {
+            JButton btn = new JButton(text) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g;
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                    GradientPaint gp = new GradientPaint(
+                            0, 0, new Color(150, 200, 255),     // light blue
+                            getWidth(), getHeight(), new Color(90, 130, 255) // blue
+                    );
+
+                    g2.setPaint(gp);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                    super.paintComponent(g);
+                }
+            };
+
+            btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+            btn.setForeground(Color.WHITE);
+            btn.setOpaque(false);
+            btn.setFocusPainted(false);
+            btn.setContentAreaFilled(false);
+            btn.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+            return btn;
+        };
+
+        // ===== TEMPLATE OPTIONS =====
+        grid.add(makeButton.apply("Basic"));
+        grid.add(makeButton.apply("Lined"));
+
+        grid.add(makeButton.apply("Graph"));
+        grid.add(makeButton.apply("Handwriting"));
+
+        grid.add(makeButton.apply("Math Grid"));
+        grid.add(makeButton.apply("Table"));
+
+        grid.add(makeButton.apply("Flashcards"));
+        grid.add(makeButton.apply("Blank"));
+
+        content.add(Box.createVerticalStrut(10));
+        content.add(grid);
+        content.add(Box.createVerticalStrut(10));
+
+        // ===== EXPAND/COLLAPSE =====
+        header.addActionListener(e -> {
+            boolean visible = content.isVisible();
+            content.setVisible(!visible);
+            header.setText((visible ? "▼  " : "▲  ") + "Template Layouts");
+            outer.revalidate();
+            outer.repaint();
+        });
+
+        outer.add(header, BorderLayout.NORTH);
+        outer.add(content, BorderLayout.CENTER);
+
+        return outer;
+    }
 
     // ============================================================
-    // GENERIC COLLAPSIBLE SECTION
-    // ============================================================
+// GENERIC COLLAPSIBLE SECTION (NOW WORKING LIKE STUDENT DETAILS)
+// ============================================================
     public static JPanel section(String title) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setMaximumSize(new Dimension(250, 50));
-        panel.setBackground(Color.WHITE);
 
-        JLabel label = new JLabel("▼  " + title);
-        label.setFont(new Font("SansSerif", Font.BOLD, 14));
-        label.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBackground(Color.WHITE);
+        outer.setMaximumSize(new Dimension(250, 200));
 
-        panel.add(label, BorderLayout.NORTH);
-        return panel;
+        JButton header = new JButton("▼  " + title);
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+        header.setFocusPainted(false);
+        header.setContentAreaFilled(false);
+        header.setBorderPainted(false);
+        header.setHorizontalAlignment(SwingConstants.LEFT);
+
+        // CONTENT PANEL (collapsed by default)
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setVisible(false);
+
+        // Placeholder content so expansion works visually.
+        // You can replace this later with actual controls.
+        JLabel placeholder = new JLabel("Content for " + title);
+        placeholder.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        placeholder.setBorder(BorderFactory.createEmptyBorder(5, 20, 5, 5));
+
+        content.add(placeholder);
+        content.add(Box.createVerticalStrut(10));
+
+        // Toggle behaviour
+        header.addActionListener(e -> {
+            boolean visible = content.isVisible();
+            content.setVisible(!visible);
+            header.setText((visible ? "▼  " : "▲  ") + title);
+            outer.revalidate();
+            outer.repaint();
+        });
+
+        outer.add(header, BorderLayout.NORTH);
+        outer.add(content, BorderLayout.CENTER);
+
+        return outer;
     }
 
     // ============================================================

@@ -1,53 +1,43 @@
 package com.espaneg.logic;
 
 import com.espaneg.model.WorksheetSettings;
+import javax.swing.JTextField;
+import javax.swing.JComboBox;
+import javax.swing.JSlider;
+import java.util.List;
 
-import javax.swing.*;
-import java.awt.*;
+public class ContentGenerator {
 
-public class ContentGenerator extends JPanel {
+    private final WorksheetService worksheetService;
 
-
-    private final JTextField studentNameField;
-    private final JComboBox<String> worksheetTypeBox;
-    private final JSlider fontSizeSlider;
-    private final JButton generateBtn;
-
+    // the service when ContentGenerator is created
     public ContentGenerator() {
-        setLayout(new GridLayout(0, 1, 10, 10));
-        setBorder(BorderFactory.createTitledBorder("Worksheet Controls"));
-
-        // Initialize instance variables
-        studentNameField = new JTextField();
-        add(new JLabel("Student Name:"));
-        add(studentNameField);
-
-        worksheetTypeBox = new JComboBox<>(new String[]{"Tracing Letters", "Math Problems", "Counting"});
-        add(new JLabel("Worksheet Type:"));
-        add(worksheetTypeBox);
-
-        fontSizeSlider = new JSlider(12, 48, 24);
-        fontSizeSlider.setMajorTickSpacing(12);
-        fontSizeSlider.setPaintTicks(true);
-        fontSizeSlider.setPaintLabels(true);
-        add(new JLabel("Font Size:"));
-        add(fontSizeSlider);
-
-        generateBtn = new JButton("Generate Worksheet");
-
-        add(generateBtn);
+        this.worksheetService = new WorksheetService();
     }
 
+    // --- Core Setting Retrieval Function ---
 
-    public WorksheetSettings getSettings() {
+    public WorksheetSettings getSettings(
+            JTextField studentNameField,
+            JComboBox<String> worksheetTypeBox,
+            JSlider fontSizeSlider) {
+
+        // Get raw data from UI comp
         String name = studentNameField.getText();
+
+        //handle potential null/type errors
         String type = (String) worksheetTypeBox.getSelectedItem();
+        if (type == null) {
+            type = "Default"; // Provide a safe default if nothing selected
+        }
+
         int size = fontSizeSlider.getValue();
+
+        // Return the new settings object
         return new WorksheetSettings(name, type, size);
     }
-
-
-    public JButton getGenerateButton() {
-        return generateBtn;
+    public List<String> generateWorksheet(WorksheetSettings settings, int itemCount) {
+        // the complex generation logic to the WorksheetService
+        return worksheetService.generateContent(settings, itemCount);
     }
 }
