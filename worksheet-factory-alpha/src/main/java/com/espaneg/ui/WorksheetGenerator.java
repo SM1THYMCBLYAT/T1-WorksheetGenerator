@@ -84,7 +84,7 @@ WorksheetGenerator {
         leftContent.add(calculationsSection());
         leftContent.add(quickFillSection());
         leftContent.add(templateSection());
-        
+
         leftContent.add(section(""));
         leftContent.add(section("Translate"));
 
@@ -1338,3 +1338,4 @@ WorksheetGenerator {
         return icon;
     }
 }
+//payge
