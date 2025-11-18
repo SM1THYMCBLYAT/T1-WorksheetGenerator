@@ -88,7 +88,6 @@ WorksheetGenerator {
         leftContent.add(templateSection());
 
         leftContent.add(section(""));
-        leftContent.add(section("Translate"));
 
         // ============================================================
         // SEARCH BAR
@@ -170,12 +169,8 @@ WorksheetGenerator {
 //        toolbar.add(createZoomButton(540, canvas));
 
         // ============================================================
-        // CHATBOT
+        // CHATBOT LAUNCHER ICON
         // ============================================================
-
-        // ============================================================
-// CHATBOT LAUNCHER ICON
-// ============================================================
         JLabel chatLauncher = new JLabel(ResourceLoader.loadIcon("CHAT.png"));
         chatLauncher.setBounds(1100, 700, 60, 60);
         chatLauncher.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -183,6 +178,7 @@ WorksheetGenerator {
         // POPUP CHAT WINDOW
         JPanel chatPopup = createChatPopup();
         background.add(chatPopup);
+        background.setComponentZOrder(chatPopup, 0);
 
 // Toggle when clicked
         chatLauncher.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -191,19 +187,6 @@ WorksheetGenerator {
                 chatPopup.setVisible(!chatPopup.isVisible());
             }
         });
-
-
-        RoundedPanel chatbotBubble = new RoundedPanel(15);
-        chatbotBubble.setBackground(Color.WHITE);
-        chatbotBubble.setBounds(1100, 700, 180, 90);
-        chatbotBubble.setLayout(null);
-
-        JLabel chatLabel = new JLabel("<html>Click to<br>interact with<br>EduCreate<br>chatbot</html>");
-        chatLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        chatLabel.setBounds(20, 10, 160, 70);
-        chatbotBubble.add(chatLabel);
-
-        background.add(chatbotBubble);
 
         frame.setVisible(true);
     }
@@ -1605,6 +1588,22 @@ WorksheetGenerator {
 
         header.setBounds(0, 0, 320, 70);
         header.setLayout(null);
+// CLOSE / RETURN BUTTON
+        JButton closeBtn = new JButton("⟵");
+        closeBtn.setFont(new Font("SansSerif", Font.BOLD, 20));
+        closeBtn.setForeground(Color.WHITE);
+        closeBtn.setFocusPainted(false);
+        closeBtn.setContentAreaFilled(false);
+        closeBtn.setBorderPainted(false);
+        closeBtn.setBounds(270, 15, 40, 40);
+
+// Will hide the popup when clicked
+        closeBtn.addActionListener(e -> {
+            Component parent = header.getParent();
+            if (parent != null) parent.setVisible(false);
+        });
+
+        header.add(closeBtn);
 
         JLabel title = new JLabel("Chat with EduCreate");
         title.setFont(new Font("SansSerif", Font.BOLD, 14));
