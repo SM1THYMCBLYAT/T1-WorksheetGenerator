@@ -9,7 +9,8 @@ import java.awt.*;
 import java.io.File;
 import javax.swing.JColorChooser;
 
-public class WorksheetGenerator {
+public class
+WorksheetGenerator {
 
     public static void main(String[] args) {
 
