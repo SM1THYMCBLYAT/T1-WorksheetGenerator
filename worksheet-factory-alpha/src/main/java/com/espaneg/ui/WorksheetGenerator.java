@@ -129,22 +129,70 @@ WorksheetGenerator {
         // ============================================================
         RoundedPanel toolbar = new RoundedPanel(40);
         toolbar.setBackground(new Color(255, 255, 255, 140));
-        toolbar.setBounds(350, 820, 700, 55);
-        toolbar.setLayout(null);
+        toolbar.setBounds(350, 820, 700, 60);
+        toolbar.setLayout(new BorderLayout());
+
         background.add(toolbar);
 
         // --- ICON FIX 5: Toolbar Icons (Corrected usage) ---
         // Note: Filenames must not include "images/" since ResourceLoader adds that path.
-        toolbar.add(toolbarIcon("UNDO.png", 50));
-        toolbar.add(toolbarIcon("ARROWLEFT.png", 120));
-        toolbar.add(toolbarIcon("ALIGNLEFT.png", 190));
-        toolbar.add(toolbarIcon("ALIGNCENTER.png", 260));
-        toolbar.add(toolbarIcon("ALIGNRIGHT.png", 330));
-        toolbar.add(toolbarIcon("ARROWRIGHT.png", 400));
+// LEFT ICON GROUP
+        JPanel iconGroup = new JPanel();
+        iconGroup.setOpaque(false);
+        iconGroup.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 10)); // spacing and alignment
+
+        iconGroup.add(toolbarIcon("UNDO.png", 0));
+        iconGroup.add(toolbarIcon("ARROWLEFT.png", 0));
+        iconGroup.add(toolbarIcon("ALIGNLEFT.png", 0));
+        iconGroup.add(toolbarIcon("ALIGNCENTER.png", 0));
+        iconGroup.add(toolbarIcon("ALIGNRIGHT.png", 0));
+        iconGroup.add(toolbarIcon("ARROWRIGHT.png", 0));
+        iconGroup.add(toolbarIcon("REDO.png", 0));
+        toolbar.add(iconGroup, BorderLayout.WEST);
+
+        // RIGHT BUTTON GROUP
+        JPanel rightButtons = new JPanel();
+        rightButtons.setOpaque(false);
+        rightButtons.setLayout(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+
+        RoundedButton autosaveBtn = new RoundedButton("AutoSave");
+        RoundedButton saveBtn = new RoundedButton(" Zoom ");
+
+        autosaveBtn.setPreferredSize(new Dimension(150, 34));
+        saveBtn.setPreferredSize(new Dimension(100, 34));
+
+        rightButtons.add(autosaveBtn);
+        rightButtons.add(saveBtn);
+
+        toolbar.add(rightButtons, BorderLayout.EAST);
+
+//        // ZOOM BUTTON (opens zoom menu)
+//        toolbar.add(createZoomButton(540, canvas));
 
         // ============================================================
         // CHATBOT
         // ============================================================
+
+        // ============================================================
+// CHATBOT LAUNCHER ICON
+// ============================================================
+        JLabel chatLauncher = new JLabel(ResourceLoader.loadIcon("CHAT.png"));
+        chatLauncher.setBounds(1100, 700, 60, 60);
+        chatLauncher.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        background.add(chatLauncher);
+        // POPUP CHAT WINDOW
+        JPanel chatPopup = createChatPopup();
+        background.add(chatPopup);
+
+// Toggle when clicked
+        chatLauncher.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                chatPopup.setVisible(!chatPopup.isVisible());
+            }
+        });
+
+
         RoundedPanel chatbotBubble = new RoundedPanel(15);
         chatbotBubble.setBackground(Color.WHITE);
         chatbotBubble.setBounds(1100, 700, 180, 90);
@@ -1313,10 +1361,90 @@ WorksheetGenerator {
 
         return outer;
     }
+//    // ===========================================================
+//    // Zoom button
+//    //============================================================
+//    public static JLabel createZoomButton(int x, JPanel canvas) {
+//
+//        JLabel zoomIcon = toolbarIcon("ZOOM.png", x); // or fallback text
+//
+//        zoomIcon.addMouseListener(new java.awt.event.MouseAdapter() {
+//            @Override
+//            public void mouseReleased(java.awt.event.MouseEvent e) {
+//                JPopupMenu zoomMenu = new JPopupMenu();
+//
+//                JMenuItem zoomIn = new JMenuItem("Zoom In");
+//                JMenuItem zoomOut = new JMenuItem("Zoom Out");
+//
+//                zoomIn.addActionListener(ev -> {
+//                    scaleCanvas(canvas, 1.1f); // increase 10%
+//                });
+//
+//                zoomOut.addActionListener(ev -> {
+//                    scaleCanvas(canvas, 0.9f); // decrease 10%
+//                });
+//
+//                zoomMenu.add(zoomIn);
+//                zoomMenu.add(zoomOut);
+//
+//                zoomMenu.show(zoomIcon, 10, 30);
+//            }
+//        });
+//
+//        return zoomIcon;
+//    }
+//    private static void scaleCanvas(JPanel canvas, float scale) {
+//        Dimension size = canvas.getSize();
+//
+//        int newW = Math.round(size.width * scale);
+//        int newH = Math.round(size.height * scale);
+//
+//        canvas.setPreferredSize(new Dimension(newW, newH));
+//        canvas.revalidate();
+//        canvas.repaint();
+//    }
+//
+//
+
 
     // ============================================================
     // SUPPORT UTILITIES
     // ============================================================
+//    public static JLabel createToolbarButton(String filename, int x, Runnable action) {
+//
+//        ImageIcon imageIcon = ResourceLoader.loadIcon(filename);
+//        JLabel icon;
+//
+//        if (imageIcon != null) {
+//            icon = new JLabel(imageIcon);
+//        } else {
+//            icon = new JLabel(filename.replace(".png", ""));
+//            icon.setForeground(Color.RED);
+//            icon.setFont(new Font("SansSerif", Font.BOLD, 10));
+//        }
+//
+//        icon.setBounds(x, 12, 32, 32);
+//        icon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//
+//        Color normal = new Color(255, 255, 255, 0);
+//        Color hover = new Color(255, 255, 255, 80);
+//        Color pressed = new Color(255, 255, 255, 140);
+//
+//        icon.addMouseListener(new java.awt.event.MouseAdapter() {
+//            @Override public void mouseEntered(java.awt.event.MouseEvent e) { icon.setBackground(hover); }
+//            @Override public void mouseExited(java.awt.event.MouseEvent e) { icon.setBackground(normal); }
+//            @Override public void mousePressed(java.awt.event.MouseEvent e) { icon.setBackground(pressed); }
+//            @Override public void mouseReleased(java.awt.event.MouseEvent e) {
+//                icon.setBackground(hover);
+//                action.run();  // <--- ACTION TRIGGER
+//            }
+//        });
+//
+//        icon.setOpaque(true);
+//        return icon;
+//    }
+//
+
     public static DocumentListener simpleListener(Runnable run) {
         return new DocumentListener() {
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
@@ -1448,5 +1576,110 @@ WorksheetGenerator {
 
         return icon;
     }
+    //chatbot method
+    public static JPanel createChatPopup() {
+
+        RoundedPanel popup = new RoundedPanel(30);
+        popup.setLayout(null);
+        popup.setBackground(Color.WHITE);
+        popup.setBounds(850, 330, 320, 480);
+        popup.setVisible(false);
+
+        // HEADER WITH BLUE GRADIENT
+        RoundedPanel header = new RoundedPanel(30) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(80, 140, 255),
+                        0, getHeight(), new Color(40, 100, 220)
+                );
+
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 30, 30);
+                super.paintComponent(g);
+            }
+        };
+
+        header.setBounds(0, 0, 320, 70);
+        header.setLayout(null);
+
+        JLabel title = new JLabel("Chat with EduCreate");
+        title.setFont(new Font("SansSerif", Font.BOLD, 14));
+        title.setForeground(Color.WHITE);
+        title.setBounds(20, 20, 260, 30);
+        header.add(title);
+
+        popup.add(header);
+
+        // CHAT DISPLAY AREA
+        JPanel chatArea = new JPanel();
+        chatArea.setLayout(new BoxLayout(chatArea, BoxLayout.Y_AXIS));
+        chatArea.setBackground(Color.WHITE);
+
+        JScrollPane scroll = new JScrollPane(chatArea);
+        scroll.setBounds(10, 80, 300, 300);
+        scroll.setBorder(null);
+        popup.add(scroll);
+
+        // INPUT FIELD
+        JTextField input = new JTextField();
+        input.setBounds(15, 400, 230, 40);
+        popup.add(input);
+
+        JButton sendBtn = new JButton("➤");
+        sendBtn.setFont(new Font("SansSerif", Font.BOLD, 18));
+        sendBtn.setBounds(255, 400, 50, 40);
+        sendBtn.setFocusPainted(false);
+        popup.add(sendBtn);
+
+        // SEND MESSAGE FUNCTIONALITY
+        sendBtn.addActionListener(e -> {
+            String text = input.getText().trim();
+            if (text.isEmpty()) return;
+
+            chatArea.add(createBubble(text, true));
+            chatArea.revalidate();
+
+            input.setText("");
+
+            // BOT RESPONSE
+            Timer t = new Timer(500, ev -> {
+                chatArea.add(createBubble("I’m here to help! 😊", false));
+                chatArea.revalidate();
+            });
+            t.setRepeats(false);
+            t.start();
+        });
+
+        return popup;
+    }
+    public static JPanel createBubble(String text, boolean isUser) {
+        JPanel outer = new JPanel(new BorderLayout());
+        outer.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+        RoundedPanel bubble = new RoundedPanel(18);
+        bubble.setLayout(new BorderLayout());
+
+        JLabel msg = new JLabel("<html>" + text + "</html>");
+        msg.setFont(new Font("SansSerif", Font.PLAIN, 13));
+
+        if (isUser) {
+            bubble.setBackground(new Color(80, 140, 255));
+            msg.setForeground(Color.WHITE);
+            outer.add(bubble, BorderLayout.EAST);
+        } else {
+            bubble.setBackground(new Color(240, 240, 240));
+            msg.setForeground(Color.BLACK);
+            outer.add(bubble, BorderLayout.WEST);
+        }
+
+        bubble.add(msg, BorderLayout.CENTER);
+        outer.setOpaque(false);
+        return outer;
+    }
+
 }
 //payge
