@@ -7,6 +7,7 @@ import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.io.File;
+import javax.swing.JLayeredPane;
 import javax.swing.JColorChooser;
 
 public class
@@ -81,7 +82,7 @@ WorksheetGenerator {
         // ============================================================
         leftContent.add(createStudentDetailsSection(canvas));
         leftContent.add(gridSection(canvas, settings));
-        leftContent.add(fontSection());
+        leftContent.add(fontSection(canvas, settings));
         leftContent.add(importContentSection());
         leftContent.add(colorPaletteSection());
         leftContent.add(calculationsSection());
@@ -469,13 +470,127 @@ WorksheetGenerator {
         canvas.repaint();
     }
     // ============================================================
-// FONT SECTION (UI ONLY – FULL CONTROLS AND PREVIEW)
+// DRAW CONTENT ON CANVAS (RENDERING FONT SETTINGS)
 // ============================================================
-    public static JPanel fontSection() {
+    private static void drawContentOnCanvas(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
+        // Remove existing content
+        canvas.removeAll();
+
+        // Create a custom panel that displays text with applied font settings
+        JPanel contentPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+                // Get font settings
+                String fontFamily = settings.getFontFamily();
+                int fontSize = settings.getFontSize();
+                boolean isBold = settings.isFontBold();
+                boolean isItalic = settings.isFontItalic();
+                boolean isUnderline = settings.isFontUnderline();
+                String alignment = settings.getTextAlignment(); // CORRECT
+
+                // Create font style
+                int style = Font.PLAIN;
+                if (isBold) style |= Font.BOLD;
+                if (isItalic) style |= Font.ITALIC;
+
+                Font font = new Font(fontFamily, style, fontSize);
+                g2d.setFont(font);
+                g2d.setColor(Color.BLACK);
+
+                // Sample text to display
+                String sampleText = "Sample Text with Applied Font Settings";
+
+                // Get text dimensions for positioning
+                FontMetrics fm = g2d.getFontMetrics();
+                int textWidth = fm.stringWidth(sampleText);
+                int textHeight = fm.getHeight();
+
+                int x = 20; // default left alignment
+                int y = 50;
+
+                // Apply alignment
+                if (alignment.equals("center")) {
+                    x = (getWidth() - textWidth) / 2;
+                } else if (alignment.equals("right")) {
+                    x = getWidth() - textWidth - 20;
+                }
+
+                // Draw the text
+                g2d.drawString(sampleText, x, y);
+
+                // Draw underline if needed
+                if (isUnderline) {
+                    int underlineY = y + 2;
+                    g2d.drawLine(x, underlineY, x + textWidth, underlineY);
+                }
+
+                // Draw grid if enabled
+                if (settings.isShowGrid()) {
+                    drawGrid(g2d, settings);
+                }
+            }
+
+            private void drawGrid(Graphics2D g2d, com.espaneg.model.WorksheetSettings settings) {
+                int gridSize = settings.getGridSize();
+                Color baseColor = settings.getGridColor();
+                float opacity = settings.getGridOpacity();
+
+                // Apply opacity to color
+                int alpha = Math.round((opacity / 100.0f) * 255);
+                Color gridColor = new Color(
+                        baseColor.getRed(),
+                        baseColor.getGreen(),
+                        baseColor.getBlue(),
+                        alpha
+                );
+
+                g2d.setColor(gridColor);
+                g2d.setStroke(new BasicStroke(1.0f));
+
+                int width = getWidth();
+                int height = getHeight();
+
+                // Draw vertical lines
+                if (settings.isGridVertical()) {
+                    for (int x = gridSize; x < width; x += gridSize) {
+                        g2d.drawLine(x, 0, x, height);
+                    }
+                }
+
+                // Draw horizontal lines
+                if (settings.isGridHorizontal()) {
+                    for (int y = gridSize; y < height; y += gridSize) {
+                        g2d.drawLine(0, y, width, y);
+                    }
+                }
+            }
+        };
+
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setLayout(new BorderLayout());
+
+        canvas.setLayout(new BorderLayout());
+        canvas.add(contentPanel, BorderLayout.CENTER);
+
+        canvas.revalidate();
+        canvas.repaint();
+    }
+    // ============================================================
+// FONT SECTION (NOW FUNCTIONAL – CONNECTED TO WORKSHEETSETTINGS)
+// ============================================================
+    public static JPanel fontSection(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
 
         JPanel outer = new JPanel(new BorderLayout());
         outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 350));
+        outer.setMaximumSize(new Dimension(250, 400));
 
         JButton header = new JButton("▼  Font");
         header.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -484,15 +599,11 @@ WorksheetGenerator {
         header.setBorderPainted(false);
         header.setHorizontalAlignment(SwingConstants.LEFT);
 
-        // ===== CONTENT PANEL =====
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(Color.WHITE);
         content.setVisible(false);
 
-        // ------------------------
-        // FONT FAMILY DROPDOWN
-        // ------------------------
         JLabel familyLabel = new JLabel("Font Family:");
         familyLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
@@ -500,20 +611,13 @@ WorksheetGenerator {
         JComboBox<String> familyBox = new JComboBox<>(families);
         familyBox.setMaximumSize(new Dimension(200, 30));
 
-        // ------------------------
-        // FONT SIZE SPINNER
-        // ------------------------
         JLabel sizeLabel = new JLabel("Font Size:");
         sizeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
-        SpinnerNumberModel sizeModel =
-                new SpinnerNumberModel(16, 8, 72, 1);
+        SpinnerNumberModel sizeModel = new SpinnerNumberModel(16, 8, 72, 1);
         JSpinner sizeSpinner = new JSpinner(sizeModel);
         sizeSpinner.setMaximumSize(new Dimension(200, 30));
 
-        // ------------------------
-        // STYLE TOGGLES
-        // ------------------------
         JCheckBox bold = new JCheckBox("Bold");
         JCheckBox italic = new JCheckBox("Italic");
         JCheckBox underline = new JCheckBox("Underline");
@@ -526,37 +630,35 @@ WorksheetGenerator {
         italic.setBackground(Color.WHITE);
         underline.setBackground(Color.WHITE);
 
-        // ------------------------
-        // ALIGNMENT BUTTONS
-        // ------------------------
         JLabel alignLabel = new JLabel("Alignment:");
         alignLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
-        JButton alignLeft = new JButton("Left");
-        JButton alignCenter = new JButton("Center");
-        JButton alignRight = new JButton("Right");
+        ButtonGroup alignGroup = new ButtonGroup();
+        JRadioButton alignLeft = new JRadioButton("Left");
+        JRadioButton alignCenter = new JRadioButton("Center");
+        JRadioButton alignRight = new JRadioButton("Right");
 
-        alignLeft.setFocusPainted(false);
-        alignCenter.setFocusPainted(false);
-        alignRight.setFocusPainted(false);
+        alignGroup.add(alignLeft);
+        alignGroup.add(alignCenter);
+        alignGroup.add(alignRight);
 
-        alignLeft.setMaximumSize(new Dimension(200, 28));
-        alignCenter.setMaximumSize(new Dimension(200, 28));
-        alignRight.setMaximumSize(new Dimension(200, 28));
+        alignLeft.setBackground(Color.WHITE);
+        alignCenter.setBackground(Color.WHITE);
+        alignRight.setBackground(Color.WHITE);
 
-        // ------------------------
-        // LIVE PREVIEW LABEL
-        // ------------------------
-        JLabel previewLabel = new JLabel("Preview Text");
+        alignLeft.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        alignCenter.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        alignRight.setFont(new Font("SansSerif", Font.PLAIN, 12));
+
+        alignLeft.setSelected(true);
+
+        JLabel previewLabel = new JLabel("Preview Text", SwingConstants.CENTER);
         previewLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
         previewLabel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         previewLabel.setOpaque(true);
         previewLabel.setBackground(new Color(245, 245, 245));
         previewLabel.setMaximumSize(new Dimension(200, 60));
 
-        // ------------------------
-        // LIVE UPDATE LOGIC
-        // ------------------------
         Runnable updatePreview = () -> {
             int size = (int) sizeSpinner.getValue();
             String family = (String) familyBox.getSelectedItem();
@@ -567,6 +669,14 @@ WorksheetGenerator {
 
             Font f = new Font(family, style, size);
             previewLabel.setFont(f);
+
+            if (alignLeft.isSelected()) {
+                previewLabel.setHorizontalAlignment(SwingConstants.LEFT);
+            } else if (alignCenter.isSelected()) {
+                previewLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            } else if (alignRight.isSelected()) {
+                previewLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+            }
         };
 
         familyBox.addActionListener(e -> updatePreview.run());
@@ -574,8 +684,30 @@ WorksheetGenerator {
         bold.addActionListener(e -> updatePreview.run());
         italic.addActionListener(e -> updatePreview.run());
         underline.addActionListener(e -> updatePreview.run());
+        alignLeft.addActionListener(e -> updatePreview.run());
+        alignCenter.addActionListener(e -> updatePreview.run());
+        alignRight.addActionListener(e -> updatePreview.run());
 
-        // ===== ADD COMPONENTS =====
+        // APPLY BUTTON - THE KEY ADDITION
+        JButton applyButton = new JButton("Apply Font to Canvas");
+        applyButton.setFocusPainted(false);
+        applyButton.setMaximumSize(new Dimension(200, 30));
+
+        applyButton.addActionListener(e -> {
+            String family = (String) familyBox.getSelectedItem();
+            int size = (int) sizeSpinner.getValue();
+            boolean isBold = bold.isSelected();
+            boolean isItalic = italic.isSelected();
+            boolean isUnderline = underline.isSelected();
+
+            String alignment = "left";
+            if (alignCenter.isSelected()) alignment = "center";
+            else if (alignRight.isSelected()) alignment = "right";
+
+            settings.updateFontSettings(family, size, isBold, isItalic, isUnderline, alignment);
+            drawContentOnCanvas(canvas, settings);
+        });
+
         content.add(familyLabel);
         content.add(familyBox);
         content.add(Box.createVerticalStrut(10));
@@ -598,7 +730,9 @@ WorksheetGenerator {
         content.add(previewLabel);
         content.add(Box.createVerticalStrut(10));
 
-        // ===== Expand/Collapse Toggle =====
+        content.add(applyButton);
+        content.add(Box.createVerticalStrut(10));
+
         header.addActionListener(e -> {
             boolean visible = content.isVisible();
             content.setVisible(!visible);
@@ -612,6 +746,7 @@ WorksheetGenerator {
 
         return outer;
     }
+
 
     // ============================================================
 // IMPORT CONTENT SECTION (UI ONLY – Logo, Images, Text, B/W-Color)
