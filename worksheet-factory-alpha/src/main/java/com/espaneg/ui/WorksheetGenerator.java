@@ -7,7 +7,6 @@ import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.io.File;
-import javax.swing.JColorChooser;
 
 public class
 WorksheetGenerator {
@@ -89,8 +88,6 @@ WorksheetGenerator {
         leftContent.add(templateSection());
 
         leftContent.add(section(""));
-        leftContent.add(section("Translate"));
-
         // ============================================================
         // SEARCH BAR
         // ============================================================
