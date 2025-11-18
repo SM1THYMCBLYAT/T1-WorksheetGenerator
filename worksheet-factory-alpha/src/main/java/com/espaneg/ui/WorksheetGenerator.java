@@ -88,6 +88,8 @@ WorksheetGenerator {
         leftContent.add(templateSection());
 
         leftContent.add(section(""));
+        leftContent.add(section("Translate"));
+
         // ============================================================
         // SEARCH BAR
         // ============================================================
