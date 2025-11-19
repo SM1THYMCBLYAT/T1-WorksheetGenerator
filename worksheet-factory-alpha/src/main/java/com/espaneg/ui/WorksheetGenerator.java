@@ -1,5 +1,6 @@
 package com.espaneg.ui;
 
+import com.espaneg.model.WorksheetSettings;
 import com.espaneg.utils.ResourceLoader;
 
 import javax.swing.*;
@@ -393,51 +394,118 @@ WorksheetGenerator {
     // ============================================================
 // GRID SECTION (NOW FUNCTIONAL – CONNECTED TO WORKSHEETSETTINGS)
 // ============================================================
-    public static JPanel gridSection(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
+    public static JPanel gridSection(JPanel canvas, WorksheetSettings settings) {
 
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 200));
+        // ---------- OUTER CARD ----------
+        RoundedPanel outer = new RoundedPanel(25) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JButton header = new JButton("▼  Grid");
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setFocusPainted(false);
-        header.setContentAreaFilled(false);
-        header.setBorderPainted(false);
-        header.setHorizontalAlignment(SwingConstants.LEFT);
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 55));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 25, 25);
 
-        // ===== CONTENT PANEL =====
+                // Card background
+                g2.setColor(new Color(255, 255, 255, 230));
+                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 25, 25);
+
+                super.paintComponent(g2);
+            }
+        };
+
+        outer.setOpaque(false);
+        outer.setLayout(new BorderLayout());
+        outer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 330));
+
+        // ---------- HEADER BAR ----------
+        JPanel headerBar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(120, 140, 170),
+                        getWidth(), getHeight(), new Color(90, 110, 140)
+                );
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                super.paintComponent(g2);
+            }
+        };
+
+        headerBar.setOpaque(false);
+        headerBar.setLayout(new BorderLayout());
+        headerBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        JLabel headerLabel = new JLabel("Grid");
+        headerLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
+        headerLabel.setForeground(Color.WHITE);
+
+        JLabel arrow = new JLabel("▼");
+        arrow.setForeground(Color.WHITE);
+        arrow.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        headerBar.add(headerLabel, BorderLayout.WEST);
+        headerBar.add(arrow, BorderLayout.EAST);
+
+        outer.add(headerBar, BorderLayout.NORTH);
+
+        // ---------- CONTENT PANEL ----------
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(Color.WHITE);
+        content.setOpaque(false);
         content.setVisible(false);
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // ------------------------
-        // Show Grid Checkbox
-        // ------------------------
+        // Helper for full width
+        java.util.function.Consumer<JComponent> fullWidth = c -> {
+            c.setAlignmentX(Component.LEFT_ALIGNMENT);
+            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
+        };
+
+        // ---------- COMPONENTS ----------
         JCheckBox showGrid = new JCheckBox("Show Grid");
-        showGrid.setBackground(Color.WHITE);
-        showGrid.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        showGrid.setOpaque(false);
+        fullWidth.accept(showGrid);
 
-        // ------------------------
-        // Grid orientation checkboxes
-        // ------------------------
         JLabel orientationLabel = new JLabel("Grid Orientation:");
-        orientationLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(orientationLabel);
 
         JCheckBox verticalGrid = new JCheckBox("Vertical");
         JCheckBox horizontalGrid = new JCheckBox("Horizontal");
         JCheckBox noneGrid = new JCheckBox("None");
 
-        verticalGrid.setBackground(Color.WHITE);
-        horizontalGrid.setBackground(Color.WHITE);
-        noneGrid.setBackground(Color.WHITE);
+        verticalGrid.setOpaque(false);
+        horizontalGrid.setOpaque(false);
+        noneGrid.setOpaque(false);
 
-        verticalGrid.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        horizontalGrid.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        noneGrid.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(verticalGrid);
+        fullWidth.accept(horizontalGrid);
+        fullWidth.accept(noneGrid);
 
-        // If "None" is selected, disable the others
+        JLabel sizeLabel = new JLabel("Grid Size:");
+        fullWidth.accept(sizeLabel);
+
+        JSpinner sizeSpinner = new JSpinner(new SpinnerNumberModel(20, 5, 100, 1));
+        fullWidth.accept(sizeSpinner);
+
+        JButton colorButton = new JButton("Choose Grid Color");
+        fullWidth.accept(colorButton);
+
+        JLabel opacityLabel = new JLabel("Grid Opacity: " + (int) settings.getGridOpacity() + "%");
+        fullWidth.accept(opacityLabel);
+
+        JSlider opacitySlider = new JSlider(0, 100, (int) settings.getGridOpacity());
+        fullWidth.accept(opacitySlider);
+
+        JButton applyButton = new JButton("Apply Grid to Canvas");
+        fullWidth.accept(applyButton);
+
+        // ---------- LOGIC ----------
         noneGrid.addActionListener(e -> {
             if (noneGrid.isSelected()) {
                 verticalGrid.setSelected(false);
@@ -453,71 +521,38 @@ WorksheetGenerator {
             if (horizontalGrid.isSelected()) noneGrid.setSelected(false);
         });
 
-        // ------------------------
-        // Grid Size Spinner
-        // ------------------------
-        JLabel sizeLabel = new JLabel("Grid Size:");
-        sizeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-
-        SpinnerNumberModel sizeModel = new SpinnerNumberModel(20, 5, 100, 1);
-        JSpinner sizeSpinner = new JSpinner(sizeModel);
-        sizeSpinner.setMaximumSize(new Dimension(200, 30));
-
-        // ------------------------
-        // Grid Color Picker Button
-        // ------------------------
-        JButton colorButton = new JButton("Choose Grid Color");
-        colorButton.setFocusPainted(false);
-        colorButton.setMaximumSize(new Dimension(200, 30));
-
-        // Store selected color
-        final Color[] selectedColor = {new Color(229, 20, 20)}; // default red
+        opacitySlider.addChangeListener(e ->
+                opacityLabel.setText("Grid Opacity: " + opacitySlider.getValue() + "%")
+        );
 
         colorButton.addActionListener(e -> {
-            Color chosen = JColorChooser.showDialog(null, "Choose Grid Color", selectedColor[0]);
+            Color chosen = JColorChooser.showDialog(null, "Choose Grid Color", settings.getGridColor());
             if (chosen != null) {
-                selectedColor[0] = chosen;
+                settings.updateGridSettings(
+                        settings.isShowGrid(),
+                        settings.isGridVertical(),
+                        settings.isGridHorizontal(),
+                        settings.getGridSize(),
+                        chosen,
+                        settings.getGridOpacity()
+                );
             }
         });
 
-        // ------------------------
-        // Grid Opacity Slider
-        // ------------------------
-        JLabel opacityLabel = new JLabel("Grid Opacity: 60%");
-        opacityLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-
-        JSlider opacitySlider = new JSlider(0, 100, 60);
-        opacitySlider.setMaximumSize(new Dimension(200, 40));
-        opacitySlider.setMajorTickSpacing(20);
-        opacitySlider.setPaintTicks(true);
-
-        opacitySlider.addChangeListener(e -> {
-            opacityLabel.setText("Grid Opacity: " + opacitySlider.getValue() + "%");
-        });
-
-        // ------------------------
-        // Apply Button - THIS IS THE KEY CONNECTION
-        // ------------------------
-        JButton applyButton = new JButton("Apply Grid to Canvas");
-        applyButton.setFocusPainted(false);
-        applyButton.setMaximumSize(new Dimension(200, 30));
-
         applyButton.addActionListener(e -> {
-            // Update WorksheetSettings with current UI values
-            boolean show = showGrid.isSelected();
-            boolean vertical = verticalGrid.isSelected();
-            boolean horizontal = horizontalGrid.isSelected();
-            int size = (int) sizeSpinner.getValue();
-            Color color = selectedColor[0];
-            float opacity = opacitySlider.getValue();
+            settings.updateGridSettings(
+                    showGrid.isSelected(),
+                    verticalGrid.isSelected(),
+                    horizontalGrid.isSelected(),
+                    (int) sizeSpinner.getValue(),
+                    settings.getGridColor(),
+                    opacitySlider.getValue()
+            );
 
-            settings.updateGridSettings(show, vertical, horizontal, size, color, opacity);
-
-            // Redraw the canvas
             drawGridOnCanvas(canvas, settings);
         });
 
-        // ===== Add components to panel =====
+        // ---------- ADD COMPONENTS ----------
         content.add(showGrid);
         content.add(Box.createVerticalStrut(8));
 
@@ -529,86 +564,69 @@ WorksheetGenerator {
 
         content.add(sizeLabel);
         content.add(sizeSpinner);
-        content.add(Box.createVerticalStrut(8));
+        content.add(Box.createVerticalStrut(10));
 
         content.add(colorButton);
-        content.add(Box.createVerticalStrut(8));
+        content.add(Box.createVerticalStrut(10));
 
         content.add(opacityLabel);
         content.add(opacitySlider);
         content.add(Box.createVerticalStrut(10));
 
         content.add(applyButton);
-        content.add(Box.createVerticalStrut(10));
 
-        // ===== Expand/Collapse Toggle =====
-        header.addActionListener(e -> {
-            boolean visible = content.isVisible();
-            content.setVisible(!visible);
-            header.setText((visible ? "▼  " : "▲  ") + "Grid");
-            outer.revalidate();
-            outer.repaint();
-        });
-
-        outer.add(header, BorderLayout.NORTH);
         outer.add(content, BorderLayout.CENTER);
+
+        // ---------- EXPAND / COLLAPSE ----------
+        headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                boolean visible = content.isVisible();
+                content.setVisible(!visible);
+                arrow.setText(visible ? "▼" : "▲");
+                outer.revalidate();
+            }
+        });
 
         return outer;
     }
+    private static void drawGridOnCanvas(JPanel canvas, WorksheetSettings settings) {
 
-
-    // ============================================================
-// DRAW GRID ON CANVAS (RENDERING LOGIC)
-// ============================================================
-    private static void drawGridOnCanvas(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
-        // Remove existing content
         canvas.removeAll();
 
-        // Create a custom panel that draws the grid
         JPanel gridPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
 
-                if (!settings.isShowGrid()) {
-                    return; // Don't draw if grid is disabled
-                }
+                if (!settings.isShowGrid()) return;
 
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Get settings
-                int gridSize = settings.getGridSize();
-                Color baseColor = settings.getGridColor();
-                float opacity = settings.getGridOpacity();
-
-                // Apply opacity to color
-                int alpha = Math.round((opacity / 100.0f) * 255);
-                Color gridColor = new Color(
-                        baseColor.getRed(),
-                        baseColor.getGreen(),
-                        baseColor.getBlue(),
-                        alpha
-                );
-
-                g2d.setColor(gridColor);
-                g2d.setStroke(new BasicStroke(1.0f));
-
+                int size = settings.getGridSize();
                 int width = getWidth();
                 int height = getHeight();
 
-                // Draw vertical lines
+                // Apply opacity
+                Color base = settings.getGridColor();
+                int alpha = (int) (settings.getGridOpacity() * 2.55); // % → 0–255
+                Color c = new Color(base.getRed(), base.getGreen(), base.getBlue(), alpha);
+
+                g2.setColor(c);
+
+                // Vertical lines
                 if (settings.isGridVertical()) {
-                    for (int x = gridSize; x < width; x += gridSize) {
-                        g2d.drawLine(x, 0, x, height);
+                    for (int x = size; x < width; x += size) {
+                        g2.drawLine(x, 0, x, height);
                     }
                 }
 
-                // Draw horizontal lines
+                // Horizontal lines
                 if (settings.isGridHorizontal()) {
-                    for (int y = gridSize; y < height; y += gridSize) {
-                        g2d.drawLine(0, y, width, y);
+                    for (int y = size; y < height; y += size) {
+                        g2.drawLine(0, y, width, y);
                     }
                 }
             }
@@ -623,6 +641,7 @@ WorksheetGenerator {
         canvas.revalidate();
         canvas.repaint();
     }
+
     // ============================================================
 // FONT SECTION (UI ONLY – FULL CONTROLS AND PREVIEW)
 // ============================================================
