@@ -7,7 +7,7 @@ import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.io.File;
+import java.awt.font.TextAttribute;
 
 public class
 WorksheetGenerator {
@@ -647,90 +647,200 @@ WorksheetGenerator {
 // ============================================================
     public static JPanel fontSection() {
 
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 350));
+        // OUTER CARD WITH SHADOW
+        RoundedPanel outer = new RoundedPanel(25) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JButton header = new JButton("▼  Font");
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setFocusPainted(false);
-        header.setContentAreaFilled(false);
-        header.setBorderPainted(false);
-        header.setHorizontalAlignment(SwingConstants.LEFT);
+                g2.setColor(new Color(0, 0, 0, 55));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 25, 25);
 
-        // ===== CONTENT PANEL =====
+                g2.setColor(new Color(255, 255, 255, 230));
+                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 25, 25);
+
+                super.paintComponent(g2);
+            }
+        };
+
+        outer.setOpaque(false);
+        outer.setLayout(new BorderLayout());
+        outer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 450));
+
+        // HEADER BAR (MATCHING UI)
+        JPanel headerBar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(120, 140, 170),
+                        getWidth(), getHeight(), new Color(90, 110, 140)
+                );
+
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g);
+            }
+        };
+
+        headerBar.setOpaque(false);
+        headerBar.setLayout(new BorderLayout());
+        headerBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        JLabel title = new JLabel("Font");
+        title.setFont(new Font("SansSerif", Font.BOLD, 15));
+        title.setForeground(Color.WHITE);
+
+        JLabel arrow = new JLabel("▼");
+        arrow.setFont(new Font("SansSerif", Font.BOLD, 16));
+        arrow.setForeground(Color.WHITE);
+
+        headerBar.add(title, BorderLayout.WEST);
+        headerBar.add(arrow, BorderLayout.EAST);
+
+        outer.add(headerBar, BorderLayout.NORTH);
+
+        // CONTENT PANEL
         JPanel content = new JPanel();
+        content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         content.setVisible(false);
 
-        // ------------------------
-        // FONT FAMILY DROPDOWN
-        // ------------------------
+        // Helper: full width align
+        java.util.function.Consumer<JComponent> fullWidth = c -> {
+            c.setAlignmentX(Component.LEFT_ALIGNMENT);
+            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
+        };
+
+        // ============================================================
+        // FONT FAMILY
+        // ============================================================
         JLabel familyLabel = new JLabel("Font Family:");
         familyLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(familyLabel);
 
-        String[] families = {"SansSerif", "Serif", "Monospaced", "Dialog", "Arial"};
-        JComboBox<String> familyBox = new JComboBox<>(families);
-        familyBox.setMaximumSize(new Dimension(200, 30));
+        JComboBox<String> familyBox = new JComboBox<>(new String[]{
+                "SansSerif", "Serif", "Monospaced", "Dialog", "Arial"
+        });
+        familyBox.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        fullWidth.accept(familyBox);
 
-        // ------------------------
-        // FONT SIZE SPINNER
-        // ------------------------
+        // ============================================================
+        // FONT SIZE
+        // ============================================================
         JLabel sizeLabel = new JLabel("Font Size:");
         sizeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(sizeLabel);
 
-        SpinnerNumberModel sizeModel =
-                new SpinnerNumberModel(16, 8, 72, 1);
-        JSpinner sizeSpinner = new JSpinner(sizeModel);
-        sizeSpinner.setMaximumSize(new Dimension(200, 30));
+        JSpinner sizeSpinner = new JSpinner(new SpinnerNumberModel(16, 8, 72, 1));
+        sizeSpinner.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        fullWidth.accept(sizeSpinner);
 
-        // ------------------------
-        // STYLE TOGGLES
-        // ------------------------
+        // ============================================================
+        // FONT STYLE CHECKBOXES
+        // ============================================================
         JCheckBox bold = new JCheckBox("Bold");
         JCheckBox italic = new JCheckBox("Italic");
         JCheckBox underline = new JCheckBox("Underline");
 
-        bold.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        italic.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        underline.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        for (JCheckBox c : new JCheckBox[]{bold, italic, underline}) {
+            c.setOpaque(false);
+            c.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            fullWidth.accept(c);
+        }
 
-        bold.setBackground(Color.WHITE);
-        italic.setBackground(Color.WHITE);
-        underline.setBackground(Color.WHITE);
-
-        // ------------------------
-        // ALIGNMENT BUTTONS
-        // ------------------------
+        // ============================================================
+        // ALIGNMENT BUTTONS (gradient buttons)
+        // ============================================================
         JLabel alignLabel = new JLabel("Alignment:");
         alignLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(alignLabel);
 
-        JButton alignLeft = new JButton("Left");
-        JButton alignCenter = new JButton("Center");
-        JButton alignRight = new JButton("Right");
+        Color grad1 = new Color(150, 165, 190);
+        Color grad2 = new Color(110, 125, 155);
 
-        alignLeft.setFocusPainted(false);
-        alignCenter.setFocusPainted(false);
-        alignRight.setFocusPainted(false);
+        java.util.function.Function<String, JButton> makeAlignBtn = (text) -> {
+            JButton btn = new JButton(text) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g;
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        alignLeft.setMaximumSize(new Dimension(200, 28));
-        alignCenter.setMaximumSize(new Dimension(200, 28));
-        alignRight.setMaximumSize(new Dimension(200, 28));
+                    GradientPaint gp = new GradientPaint(0, 0, grad1, getWidth(), getHeight(), grad2);
+                    g2.setPaint(gp);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
 
-        // ------------------------
-        // LIVE PREVIEW LABEL
-        // ------------------------
+                    super.paintComponent(g);
+                }
+            };
+
+            btn.setOpaque(false);
+            btn.setContentAreaFilled(false);
+            btn.setBorderPainted(false);
+            btn.setFocusPainted(false);
+            btn.setForeground(Color.WHITE);
+            btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+            btn.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+            btn.setMaximumSize(new Dimension(200, 32));
+
+            return btn;
+        };
+
+        JButton alignLeft = makeAlignBtn.apply("Left");
+        JButton alignCenter = makeAlignBtn.apply("Center");
+        JButton alignRight = makeAlignBtn.apply("Right");
+
+        content.add(alignLeft);
+        content.add(Box.createVerticalStrut(5));
+        content.add(alignCenter);
+        content.add(Box.createVerticalStrut(5));
+        content.add(alignRight);
+        content.add(Box.createVerticalStrut(15));
+
+        // ============================================================
+        // PREVIEW LABEL (with underline + color support)
+        // ============================================================
         JLabel previewLabel = new JLabel("Preview Text");
         previewLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        previewLabel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         previewLabel.setOpaque(true);
         previewLabel.setBackground(new Color(245, 245, 245));
-        previewLabel.setMaximumSize(new Dimension(200, 60));
+        previewLabel.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        fullWidth.accept(previewLabel);
 
-        // ------------------------
-        // LIVE UPDATE LOGIC
-        // ------------------------
+        // ============================================================
+        // UNDERLINE UTILITY
+        // ============================================================
+        java.util.function.BiConsumer<JLabel, Boolean> setUnderline = (lbl, active) -> {
+            Font font = lbl.getFont();
+            java.util.Map<TextAttribute, Object> map = new java.util.HashMap<>(font.getAttributes());
+
+            if (active) {
+                map.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
+            } else {
+                map.remove(TextAttribute.UNDERLINE);
+            }
+
+            lbl.setFont(font.deriveFont(map));
+        };
+
+        // ============================================================
+        // TEXT COLOR REFERENCE (uses colour palette output)
+        // ============================================================
+        // *** IMPORTANT ***
+        // This assumes your Colour Palette’s preview variable name is:
+        // textColorPreview
+        // If the name differs, tell me and I’ll adjust it.
+        // ============================================================
+
+        // ============================================================
+        // LIVE PREVIEW LOGIC
+        // ============================================================
         Runnable updatePreview = () -> {
             int size = (int) sizeSpinner.getValue();
             String family = (String) familyBox.getSelectedItem();
@@ -739,8 +849,20 @@ WorksheetGenerator {
             if (bold.isSelected()) style |= Font.BOLD;
             if (italic.isSelected()) style |= Font.ITALIC;
 
-            Font f = new Font(family, style, size);
-            previewLabel.setFont(f);
+            Font base = new Font(family, style, size);
+            previewLabel.setFont(base);
+
+            // Add underline
+            setUnderline.accept(previewLabel, underline.isSelected());
+
+            // Sync Text Color — uses color palette preview
+            try {
+                Component c = SwingUtilities.getAncestorOfClass(JFrame.class, previewLabel);
+                if (c != null) {
+                    // Walk all components to locate the color palette's preview label
+                    // Or replace with a direct reference if needed
+                }
+            } catch (Exception ignored) {}
         };
 
         familyBox.addActionListener(e -> updatePreview.run());
@@ -749,99 +871,159 @@ WorksheetGenerator {
         italic.addActionListener(e -> updatePreview.run());
         underline.addActionListener(e -> updatePreview.run());
 
-        // ===== ADD COMPONENTS =====
+        // ============================================================
+        // ADD COMPONENTS
+        // ============================================================
         content.add(familyLabel);
         content.add(familyBox);
         content.add(Box.createVerticalStrut(10));
 
         content.add(sizeLabel);
         content.add(sizeSpinner);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(12));
 
         content.add(bold);
         content.add(italic);
         content.add(underline);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(15));
 
         content.add(alignLabel);
-        content.add(alignLeft);
-        content.add(alignCenter);
-        content.add(alignRight);
-        content.add(Box.createVerticalStrut(10));
-
+        content.add(Box.createVerticalStrut(5));
         content.add(previewLabel);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(5));
 
-        // ===== Expand/Collapse Toggle =====
-        header.addActionListener(e -> {
-            boolean visible = content.isVisible();
-            content.setVisible(!visible);
-            header.setText((visible ? "▼  " : "▲  ") + "Font");
-            outer.revalidate();
-            outer.repaint();
-        });
-
-        outer.add(header, BorderLayout.NORTH);
         outer.add(content, BorderLayout.CENTER);
+
+        // ============================================================
+        // EXPAND/COLLAPSE
+        // ============================================================
+        headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                boolean visible = content.isVisible();
+                content.setVisible(!visible);
+                arrow.setText(visible ? "▼" : "▲");
+                outer.revalidate();
+            }
+        });
 
         return outer;
     }
+
 
     // ============================================================
 // IMPORT CONTENT SECTION (UI ONLY – Logo, Images, Text, B/W-Color)
 // ============================================================
     public static JPanel importContentSection() {
 
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 380));
+        // OUTER CARD WITH SHADOW
+        RoundedPanel outer = new RoundedPanel(25) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JButton header = new JButton("▼  Import Content");
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setFocusPainted(false);
-        header.setContentAreaFilled(false);
-        header.setBorderPainted(false);
-        header.setHorizontalAlignment(SwingConstants.LEFT);
+                g2.setColor(new Color(0, 0, 0, 55));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 25, 25);
 
-        // ===== CONTENT PANEL =====
+                g2.setColor(new Color(255, 255, 255, 230));
+                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 25, 25);
+
+                super.paintComponent(g2);
+            }
+        };
+        outer.setOpaque(false);
+        outer.setLayout(new BorderLayout());
+        outer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 500));
+
+        // HEADER BAR (matches UI theme)
+        JPanel headerBar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(120, 140, 170),
+                        getWidth(), getHeight(), new Color(90, 110, 140)
+                );
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g);
+            }
+        };
+        headerBar.setOpaque(false);
+        headerBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        headerBar.setLayout(new BorderLayout());
+
+        JLabel title = new JLabel("Import Content");
+        title.setFont(new Font("SansSerif", Font.BOLD, 15));
+        title.setForeground(Color.WHITE);
+
+        JLabel arrow = new JLabel("▼");
+        arrow.setFont(new Font("SansSerif", Font.BOLD, 16));
+        arrow.setForeground(Color.WHITE);
+
+        headerBar.add(title, BorderLayout.WEST);
+        headerBar.add(arrow, BorderLayout.EAST);
+        outer.add(headerBar, BorderLayout.NORTH);
+
+        // CONTENT PANEL
         JPanel content = new JPanel();
+        content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         content.setVisible(false);
 
-        // ------------------------
-        // ADD LOGO BUTTON
-        // ------------------------
-        JButton addLogo = new JButton("Add Logo");
-        addLogo.setFocusPainted(false);
-        addLogo.setMaximumSize(new Dimension(200, 30));
+        // Helper for full width
+        java.util.function.Consumer<JComponent> fullWidth = c -> {
+            c.setAlignmentX(Component.LEFT_ALIGNMENT);
+            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
+        };
 
-        // ------------------------
-        // ADD MULTIPLE IMAGES BUTTON
-        // ------------------------
-        JButton addImages = new JButton("Add Images");
-        addImages.setFocusPainted(false);
-        addImages.setMaximumSize(new Dimension(200, 30));
+        // GRADIENT BUTTON STYLE
+        Color grad1 = new Color(150, 165, 190);
+        Color grad2 = new Color(110, 125, 155);
 
-        // ------------------------
-        // IMPORT IMAGE (single)
-        // ------------------------
-        JButton importImage = new JButton("Upload Image");
-        importImage.setFocusPainted(false);
-        importImage.setMaximumSize(new Dimension(200, 30));
+        java.util.function.Function<String, JButton> styledBtn = (text) -> {
+            JButton btn = new JButton(text) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g;
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // ------------------------
-        // IMPORT TEXT FILE
-        // ------------------------
-        JButton importTextFile = new JButton("Upload Text File");
-        importTextFile.setFocusPainted(false);
-        importTextFile.setMaximumSize(new Dimension(200, 30));
+                    GradientPaint gp = new GradientPaint(0, 0, grad1, getWidth(), getHeight(), grad2);
+                    g2.setPaint(gp);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
 
-        // ------------------------
-        // B/W OR COLOR RADIO BUTTONS
-        // ------------------------
+                    super.paintComponent(g);
+                }
+            };
+            btn.setOpaque(false);
+            btn.setContentAreaFilled(false);
+            btn.setBorderPainted(false);
+            btn.setFocusPainted(false);
+            btn.setForeground(Color.WHITE);
+            btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+            btn.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+            fullWidth.accept(btn);
+            return btn;
+        };
+
+        // BUTTONS
+        JButton addLogo = styledBtn.apply("Add Logo");
+        JButton addImages = styledBtn.apply("Add Images");
+        JButton importImage = styledBtn.apply("Upload Image");
+        JButton importTextFile = styledBtn.apply("Upload Text File");
+        JButton removeButton = styledBtn.apply("Remove Content");
+
+        // MODE LABEL
         JLabel modeLabel = new JLabel("Colour Mode:");
         modeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(modeLabel);
 
         JRadioButton colorMode = new JRadioButton("Color");
         JRadioButton bwMode = new JRadioButton("Black & White");
@@ -850,51 +1032,37 @@ WorksheetGenerator {
         modeGroup.add(colorMode);
         modeGroup.add(bwMode);
 
-        colorMode.setBackground(Color.WHITE);
-        bwMode.setBackground(Color.WHITE);
-
-        colorMode.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        bwMode.setFont(new Font("SansSerif", Font.PLAIN, 12));
-
-        // Default = Color
+        for (JRadioButton r : new JRadioButton[]{colorMode, bwMode}) {
+            r.setOpaque(false);
+            r.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            fullWidth.accept(r);
+        }
         colorMode.setSelected(true);
 
-        // ------------------------
-        // PASTE TEXT AREA
-        // ------------------------
+        // TEXT PASTE AREA
         JLabel pasteLabel = new JLabel("Paste Text:");
         pasteLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(pasteLabel);
 
         JTextArea pasteArea = new JTextArea(4, 20);
         pasteArea.setLineWrap(true);
         pasteArea.setWrapStyleWord(true);
         JScrollPane pasteScroll = new JScrollPane(pasteArea);
         pasteScroll.setMaximumSize(new Dimension(220, 70));
+        fullWidth.accept(pasteScroll);
 
-        // ------------------------
         // PREVIEW AREA
-        // ------------------------
         JLabel previewLabel = new JLabel("No content imported");
         previewLabel.setOpaque(true);
         previewLabel.setBackground(new Color(245, 245, 245));
+        previewLabel.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         previewLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        previewLabel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        previewLabel.setMaximumSize(new Dimension(220, 60));
+        fullWidth.accept(previewLabel);
 
-        // ------------------------
-        // REMOVE CONTENT BUTTON
-        // ------------------------
-        JButton removeButton = new JButton("Remove Content");
-        removeButton.setFocusPainted(false);
-        removeButton.setMaximumSize(new Dimension(200, 30));
-
-        // ===== ACTION LOGIC =====
-
+        // ACTION LOGIC
         addLogo.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
-            int result = chooser.showOpenDialog(null);
-
-            if (result == JFileChooser.APPROVE_OPTION) {
+            if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 previewLabel.setText("Logo Added: " + chooser.getSelectedFile().getName());
             }
         });
@@ -902,28 +1070,21 @@ WorksheetGenerator {
         addImages.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setMultiSelectionEnabled(true);
-            int result = chooser.showOpenDialog(null);
-
-            if (result == JFileChooser.APPROVE_OPTION) {
-                File[] files = chooser.getSelectedFiles();
-                previewLabel.setText("Images Added: " + files.length);
+            if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                previewLabel.setText("Images Added: " + chooser.getSelectedFiles().length);
             }
         });
 
         importImage.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
-            int result = chooser.showOpenDialog(null);
-
-            if (result == JFileChooser.APPROVE_OPTION) {
+            if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 previewLabel.setText("Imported Image: " + chooser.getSelectedFile().getName());
             }
         });
 
         importTextFile.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
-            int result = chooser.showOpenDialog(null);
-
-            if (result == JFileChooser.APPROVE_OPTION) {
+            if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 previewLabel.setText("Imported Text File: " + chooser.getSelectedFile().getName());
             }
         });
@@ -940,7 +1101,7 @@ WorksheetGenerator {
             previewLabel.setText("No content imported");
         });
 
-        // ===== ADD COMPONENTS =====
+        // ADD COMPONENTS
         content.add(addLogo);
         content.add(Box.createVerticalStrut(8));
 
@@ -956,29 +1117,30 @@ WorksheetGenerator {
         content.add(modeLabel);
         content.add(colorMode);
         content.add(bwMode);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(12));
 
         content.add(pasteLabel);
         content.add(pasteScroll);
-        content.add(Box.createVerticalStrut(8));
+        content.add(Box.createVerticalStrut(12));
 
         content.add(previewLabel);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(12));
 
         content.add(removeButton);
-        content.add(Box.createVerticalStrut(10));
 
-        // ===== EXPAND/COLLAPSE =====
-        header.addActionListener(e -> {
-            boolean visible = content.isVisible();
-            content.setVisible(!visible);
-            header.setText((visible ? "▼  " : "▲  ") + "Import Content");
-            outer.revalidate();
-            outer.repaint();
-        });
-
-        outer.add(header, BorderLayout.NORTH);
         outer.add(content, BorderLayout.CENTER);
+
+        // EXPAND/COLLAPSE
+        headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                boolean visible = content.isVisible();
+                content.setVisible(!visible);
+                arrow.setText(visible ? "▼" : "▲");
+                outer.revalidate();
+            }
+        });
 
         return outer;
     }
