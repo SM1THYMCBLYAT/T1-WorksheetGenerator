@@ -244,18 +244,16 @@ WorksheetGenerator {
         sectionPanel.setBackground(Color.WHITE);
         sectionPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        JButton headerButton = new JButton("▼  Student Details");
-        headerButton.setFocusPainted(false);
-        headerButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-        headerButton.setForeground(new Color(50, 60, 80));
-        headerButton.setContentAreaFilled(false);
-        headerButton.setBorderPainted(false);
-        headerButton.setHorizontalAlignment(SwingConstants.LEFT);
+        JLabel headerLabel = new JLabel("Student Details");
+        headerLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        headerLabel.setForeground(new Color(50, 60, 80));
+        headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
+
 
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(Color.WHITE);
-        content.setVisible(false);
+        content.setVisible(true);
 
         JLabel nameLabel = new JLabel("Name:");
         JTextField nameField = new JTextField();
@@ -274,14 +272,9 @@ WorksheetGenerator {
         content.add(instructionsLabel);
         content.add(scroll);
 
-        headerButton.addActionListener(e -> {
-            boolean visible = content.isVisible();
-            content.setVisible(!visible);
-            headerButton.setText((visible ? "▼  " : "▲  ") + "Student Details");
-            sectionPanel.revalidate();
-        });
 
-        sectionPanel.add(headerButton, BorderLayout.NORTH);
+
+        sectionPanel.add(headerLabel, BorderLayout.NORTH);
         sectionPanel.add(content, BorderLayout.CENTER);
 
         // Canvas display
