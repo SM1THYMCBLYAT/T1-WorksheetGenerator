@@ -90,7 +90,7 @@ WorksheetGenerator {
         leftContent.add(quickFillSection());
         leftContent.add(templateSection());
 
-        leftContent.add(section(""));
+//        leftContent.add(section(""));
 
         // ============================================================
         // SEARCH BAR
@@ -1143,88 +1143,167 @@ WorksheetGenerator {
 // ============================================================
     public static JPanel calculationsSection() {
 
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 350));
+        // CARD WITH SHADOW
+        RoundedPanel outer = new RoundedPanel(25) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JButton header = new JButton("▼  Calculations");
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setFocusPainted(false);
-        header.setContentAreaFilled(false);
-        header.setBorderPainted(false);
-        header.setHorizontalAlignment(SwingConstants.LEFT);
+                // Soft shadow
+                g2.setColor(new Color(0, 0, 0, 55));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 25, 25);
 
-        // ===== CONTENT PANEL =====
+                // Card background
+                g2.setColor(new Color(255, 255, 255, 230));
+                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 25, 25);
+
+                super.paintComponent(g2);
+            }
+        };
+
+        outer.setOpaque(false);
+        outer.setLayout(new BorderLayout());
+        outer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 420));
+
+        // HEADER BAR
+        JPanel headerBar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(120, 140, 170),
+                        getWidth(), getHeight(), new Color(90, 110, 140)
+                );
+
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g2);
+            }
+        };
+
+        headerBar.setOpaque(false);
+        headerBar.setLayout(new BorderLayout());
+        headerBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        JLabel title = new JLabel("Calculations");
+        title.setFont(new Font("SansSerif", Font.BOLD, 15));
+        title.setForeground(Color.WHITE);
+
+        JLabel arrow = new JLabel("▼");
+        arrow.setFont(new Font("SansSerif", Font.BOLD, 16));
+        arrow.setForeground(Color.WHITE);
+
+        headerBar.add(title, BorderLayout.WEST);
+        headerBar.add(arrow, BorderLayout.EAST);
+
+        outer.add(headerBar, BorderLayout.NORTH);
+
+        // CONTENT PANEL
         JPanel content = new JPanel();
+        content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         content.setVisible(false);
 
-        // ------------------------
-        // NUMBER RANGE CHECKBOXES
-        // ------------------------
+        // Helper to align full width
+        java.util.function.Consumer<JComponent> fullWidth = c -> {
+            c.setAlignmentX(Component.LEFT_ALIGNMENT);
+            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
+        };
+
+        // -------------------
+        // NUMBER RANGE
+        // -------------------
         JLabel rangeLabel = new JLabel("Number Range:");
         rangeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(rangeLabel);
 
         JCheckBox range20 = new JCheckBox("1 - 20");
         JCheckBox range50 = new JCheckBox("1 - 50");
         JCheckBox range100 = new JCheckBox("1 - 100");
 
-        range20.setBackground(Color.WHITE);
-        range50.setBackground(Color.WHITE);
-        range100.setBackground(Color.WHITE);
+        JCheckBox[] ranges = {range20, range50, range100};
+        for (JCheckBox box : ranges) {
+            box.setOpaque(false);
+            box.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            fullWidth.accept(box);
+        }
 
-        range20.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        range50.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        range100.setFont(new Font("SansSerif", Font.PLAIN, 12));
-
-        // ------------------------
-        // PROBLEM COUNT SPINNER
-        // ------------------------
+        // -------------------
+        // PROBLEM COUNT
+        // -------------------
         JLabel problemLabel = new JLabel("How many problems?");
         problemLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(problemLabel);
 
-        SpinnerNumberModel problemModel =
-                new SpinnerNumberModel(10, 1, 50, 1);
+        SpinnerNumberModel problemModel = new SpinnerNumberModel(10, 1, 50, 1);
         JSpinner problemSpinner = new JSpinner(problemModel);
-        problemSpinner.setMaximumSize(new Dimension(200, 30));
+        fullWidth.accept(problemSpinner);
 
-        // ------------------------
-        // OPERATION OPTIONS
-        // ------------------------
+        // -------------------
+        // OPERATIONS
+        // -------------------
         JLabel opsLabel = new JLabel("Operations:");
         opsLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(opsLabel);
 
         JCheckBox addOp = new JCheckBox("Addition (+)");
         JCheckBox subOp = new JCheckBox("Subtraction (−)");
         JCheckBox mulOp = new JCheckBox("Multiplication (×)");
         JCheckBox divOp = new JCheckBox("Division (÷)");
 
-        addOp.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        subOp.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        mulOp.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        divOp.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        JCheckBox[] ops = {addOp, subOp, mulOp, divOp};
+        for (JCheckBox box : ops) {
+            box.setOpaque(false);
+            box.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            fullWidth.accept(box);
+        }
 
-        addOp.setBackground(Color.WHITE);
-        subOp.setBackground(Color.WHITE);
-        mulOp.setBackground(Color.WHITE);
-        divOp.setBackground(Color.WHITE);
+        // -------------------
+        // GENERATE BUTTON
+        // -------------------
+        JButton generateButton = new JButton("Generate Problems") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // ------------------------
-        // GENERATE BUTTON (UI ONLY)
-        // ------------------------
-        JButton generateButton = new JButton("Generate Problems");
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(150, 165, 190),
+                        getWidth(), getHeight(), new Color(110, 125, 155)
+                );
+
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+
+                super.paintComponent(g);
+            }
+        };
+
+        generateButton.setOpaque(false);
+        generateButton.setContentAreaFilled(false);
         generateButton.setFocusPainted(false);
-        generateButton.setMaximumSize(new Dimension(200, 30));
+        generateButton.setForeground(Color.WHITE);
+        generateButton.setFont(new Font("SansSerif", Font.BOLD, 13));
+        generateButton.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
-        // ===== ACTION PLACEHOLDER =====
+        fullWidth.accept(generateButton);
+
         generateButton.addActionListener(e -> {
-            // UI only — no functionality yet
             JOptionPane.showMessageDialog(null,
-                    "This will generate math problems (feature coming later).");
+                    "Math problem generation feature coming soon!",
+                    "Coming Soon",
+                    JOptionPane.INFORMATION_MESSAGE);
         });
 
-        // ===== ADD COMPONENTS =====
+        // -------------------
+        // ADD COMPONENTS
+        // -------------------
         content.add(rangeLabel);
         content.add(range20);
         content.add(range50);
@@ -1245,17 +1324,19 @@ WorksheetGenerator {
         content.add(generateButton);
         content.add(Box.createVerticalStrut(10));
 
-        // ===== EXPAND / COLLAPSE =====
-        header.addActionListener(e -> {
-            boolean visible = content.isVisible();
-            content.setVisible(!visible);
-            header.setText((visible ? "▼  " : "▲  ") + "Calculations");
-            outer.revalidate();
-            outer.repaint();
-        });
-
-        outer.add(header, BorderLayout.NORTH);
         outer.add(content, BorderLayout.CENTER);
+
+        // EXPAND / COLLAPSE
+        headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                boolean visible = content.isVisible();
+                content.setVisible(!visible);
+                arrow.setText(visible ? "▼" : "▲");
+                outer.revalidate();
+            }
+        });
 
         return outer;
     }
@@ -1265,30 +1346,83 @@ WorksheetGenerator {
 // ============================================================
     public static JPanel quickFillSection() {
 
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 500));
+        // OUTER CARD
+        RoundedPanel outer = new RoundedPanel(25) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JButton header = new JButton("▼  Quick Fill");
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setFocusPainted(false);
-        header.setContentAreaFilled(false);
-        header.setBorderPainted(false);
-        header.setHorizontalAlignment(SwingConstants.LEFT);
+                // Soft shadow
+                g2.setColor(new Color(0, 0, 0, 55));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 25, 25);
 
-        // ===== CONTENT PANEL =====
+                // Card background
+                g2.setColor(new Color(255, 255, 255, 230));
+                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 25, 25);
+
+                super.paintComponent(g2);
+            }
+        };
+
+        outer.setOpaque(false);
+        outer.setLayout(new BorderLayout());
+        outer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 500));
+
+        // HEADER BAR
+        JPanel headerBar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(120, 140, 170),   // top
+                        getWidth(), getHeight(), new Color(90, 110, 140)  // bottom
+                );
+
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g);
+            }
+        };
+        headerBar.setOpaque(false);
+        headerBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        headerBar.setLayout(new BorderLayout());
+
+        JLabel headerLabel = new JLabel("Quick Fill");
+        headerLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
+        headerLabel.setForeground(Color.WHITE);
+
+        JLabel arrow = new JLabel("▼");
+        arrow.setFont(new Font("SansSerif", Font.BOLD, 16));
+        arrow.setForeground(Color.WHITE);
+
+        headerBar.add(headerLabel, BorderLayout.WEST);
+        headerBar.add(arrow, BorderLayout.EAST);
+
+        outer.add(headerBar, BorderLayout.NORTH);
+
+        // CONTENT PANEL
         JPanel content = new JPanel();
+        content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(Color.WHITE);
         content.setVisible(false);
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // ===== Two-column button panel =====
-        JPanel grid = new JPanel(new GridLayout(0, 2, 10, 10));
-        grid.setBackground(Color.WHITE);
-        grid.setMaximumSize(new Dimension(230, 350));
+        // GRID (2 COLUMNS)
+        JPanel grid = new JPanel(new GridLayout(0, 2, 12, 12));
+        grid.setOpaque(false);
 
-        // Gradient button creator (LIGHT BLUE)
-        java.util.function.Function<String, JButton> makeButton = (text) -> {
+        // Button gradient colors — OPTION A
+        Color grad1 = new Color(150, 165, 190);
+        Color grad2 = new Color(110, 125, 155);
+
+        // FACTORY: Creates your new UI-matching buttons
+        java.util.function.Function<String, JButton> makeBtn = (text) -> {
+
             JButton btn = new JButton(text) {
                 @Override
                 protected void paintComponent(Graphics g) {
@@ -1296,8 +1430,8 @@ WorksheetGenerator {
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
                     GradientPaint gp = new GradientPaint(
-                            0, 0, new Color(150, 200, 255),   // light blue top
-                            getWidth(), getHeight(), new Color(90, 130, 255) // deeper blue bottom
+                            0, 0, grad1,
+                            getWidth(), getHeight(), grad2
                     );
 
                     g2.setPaint(gp);
@@ -1307,50 +1441,69 @@ WorksheetGenerator {
                 }
             };
 
-            btn.setFont(new Font("SansSerif", Font.BOLD, 12));
-            btn.setForeground(Color.WHITE);
             btn.setOpaque(false);
-            btn.setFocusPainted(false);
             btn.setContentAreaFilled(false);
-            btn.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+            btn.setFocusPainted(false);
+            btn.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            btn.setForeground(Color.WHITE);
+            btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+            // Hover + Press effect
+            btn.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    btn.setForeground(new Color(230, 230, 255));
+                }
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    btn.setForeground(Color.WHITE);
+                }
+
+                @Override
+                public void mousePressed(java.awt.event.MouseEvent e) {
+                    btn.setForeground(Color.LIGHT_GRAY);
+                }
+            });
+
             return btn;
         };
 
+        // ADD BUTTONS
+        grid.add(makeBtn.apply("A-Z"));
+        grid.add(makeBtn.apply("a-z"));
 
-        // ===== ADD BUTTONS =====
-        grid.add(makeButton.apply("A-Z"));
-        grid.add(makeButton.apply("a-z"));
+        grid.add(makeBtn.apply("1-20"));
+        grid.add(makeBtn.apply("Sight Words"));
 
-        grid.add(makeButton.apply("1-20"));
-        grid.add(makeButton.apply("Sight Words"));
+        grid.add(makeBtn.apply("Colors"));
+        grid.add(makeBtn.apply("Animals"));
 
-        grid.add(makeButton.apply("Colors"));
-        grid.add(makeButton.apply("Animals"));
+        grid.add(makeBtn.apply("CVC Words"));
+        grid.add(makeBtn.apply("Shapes"));
 
-        grid.add(makeButton.apply("CVC Words"));
-        grid.add(makeButton.apply("Shapes"));
+        grid.add(makeBtn.apply("Addition"));
+        grid.add(makeBtn.apply("Subtraction"));
 
-        grid.add(makeButton.apply("Addition"));
-        grid.add(makeButton.apply("Subtraction"));
+        grid.add(makeBtn.apply("Count 1-10"));
+        grid.add(new JLabel()); // alignment filler
 
-        grid.add(makeButton.apply("Count 1-10"));
-        grid.add(new JLabel()); // empty to keep grid aligned
-
-        content.add(Box.createVerticalStrut(10));
         content.add(grid);
         content.add(Box.createVerticalStrut(10));
 
-        // ===== EXPAND / COLLAPSE =====
-        header.addActionListener(e -> {
-            boolean visible = content.isVisible();
-            content.setVisible(!visible);
-            header.setText((visible ? "▼  " : "▲  ") + "Quick Fill");
-            outer.revalidate();
-            outer.repaint();
-        });
-
-        outer.add(header, BorderLayout.NORTH);
         outer.add(content, BorderLayout.CENTER);
+
+        // EXPAND / COLLAPSE
+        headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                boolean visible = content.isVisible();
+                content.setVisible(!visible);
+                arrow.setText(visible ? "▼" : "▲");
+                outer.revalidate();
+            }
+        });
 
         return outer;
     }
@@ -1360,134 +1513,206 @@ WorksheetGenerator {
 // ============================================================
     public static JPanel templateSection() {
 
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 420));
+        // OUTER CARD
+        RoundedPanel outer = new RoundedPanel(25) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JButton header = new JButton("▼  Template Layouts");
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setFocusPainted(false);
-        header.setContentAreaFilled(false);
-        header.setBorderPainted(false);
-        header.setHorizontalAlignment(SwingConstants.LEFT);
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 55));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 25, 25);
 
-        // ===== CONTENT PANEL =====
+                // Card background
+                g2.setColor(new Color(255, 255, 255, 230));
+                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 25, 25);
+
+                super.paintComponent(g2);
+            }
+        };
+
+        outer.setOpaque(false);
+        outer.setLayout(new BorderLayout());
+        outer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 460));
+
+        // HEADER BAR ------------------------------------
+        JPanel headerBar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(120, 140, 170),
+                        getWidth(), getHeight(), new Color(90, 110, 140)
+                );
+
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g2);
+            }
+        };
+        headerBar.setOpaque(false);
+        headerBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        headerBar.setLayout(new BorderLayout());
+
+        JLabel headerLabel = new JLabel("Template Layouts");
+        headerLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
+        headerLabel.setForeground(Color.WHITE);
+
+        JLabel arrow = new JLabel("▼");
+        arrow.setFont(new Font("SansSerif", Font.BOLD, 16));
+        arrow.setForeground(Color.WHITE);
+
+        headerBar.add(headerLabel, BorderLayout.WEST);
+        headerBar.add(arrow, BorderLayout.EAST);
+
+        outer.add(headerBar, BorderLayout.NORTH);
+
+        // CONTENT ----------------------------------------
         JPanel content = new JPanel();
+        content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         content.setVisible(false);
 
-        // ===== 2-COLUMN GRID =====
-        JPanel grid = new JPanel(new GridLayout(0, 2, 10, 10));
-        grid.setBackground(Color.WHITE);
-        grid.setMaximumSize(new Dimension(230, 350));
+        // GRID
+        JPanel grid = new JPanel(new GridLayout(0, 2, 12, 12));
+        grid.setOpaque(false);
 
-        // LIGHT BLUE BUTTON BUILDER
-        java.util.function.Function<String, JButton> makeButton = (text) -> {
+        // Gradient colors (same as Quick Fill)
+        Color grad1 = new Color(150, 165, 190);
+        Color grad2 = new Color(110, 125, 155);
+
+        // BUTTON BUILDER (same as Quick Fill)
+        java.util.function.Function<String, JButton> makeBtn = (text) -> {
+
             JButton btn = new JButton(text) {
                 @Override
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g;
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                    GradientPaint gp = new GradientPaint(
-                            0, 0, new Color(150, 200, 255),     // light blue
-                            getWidth(), getHeight(), new Color(90, 130, 255) // blue
-                    );
+                    GradientPaint gp = new GradientPaint(0, 0, grad1,
+                            getWidth(), getHeight(), grad2);
 
                     g2.setPaint(gp);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
 
-                    super.paintComponent(g);
+                    super.paintComponent(g2);
                 }
             };
 
-            btn.setFont(new Font("SansSerif", Font.BOLD, 12));
-            btn.setForeground(Color.WHITE);
             btn.setOpaque(false);
-            btn.setFocusPainted(false);
             btn.setContentAreaFilled(false);
-            btn.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+            btn.setFocusPainted(false);
+            btn.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+            btn.setForeground(Color.WHITE);
+            btn.setFont(new Font("SansSerif", Font.BOLD, 13));
+
+            // Hover + Press effects
+            btn.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    btn.setForeground(new Color(230, 230, 255));
+                }
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    btn.setForeground(Color.WHITE);
+                }
+
+                @Override
+                public void mousePressed(java.awt.event.MouseEvent e) {
+                    btn.setForeground(Color.LIGHT_GRAY);
+                }
+            });
+
             return btn;
         };
 
-        // ===== TEMPLATE OPTIONS =====
-        grid.add(makeButton.apply("Basic"));
-        grid.add(makeButton.apply("Lined"));
+        // ADD TEMPLATE BUTTONS
+        grid.add(makeBtn.apply("Basic"));
+        grid.add(makeBtn.apply("Lined"));
 
-        grid.add(makeButton.apply("Graph"));
-        grid.add(makeButton.apply("Handwriting"));
+        grid.add(makeBtn.apply("Graph"));
+        grid.add(makeBtn.apply("Handwriting"));
 
-        grid.add(makeButton.apply("Math Grid"));
-        grid.add(makeButton.apply("Table"));
+        grid.add(makeBtn.apply("Math Grid"));
+        grid.add(makeBtn.apply("Table"));
 
-        grid.add(makeButton.apply("Flashcards"));
-        grid.add(makeButton.apply("Blank"));
+        grid.add(makeBtn.apply("Flashcards"));
+        grid.add(makeBtn.apply("Blank"));
 
-        content.add(Box.createVerticalStrut(10));
+        // Add grid to content
         content.add(grid);
         content.add(Box.createVerticalStrut(10));
 
-        // ===== EXPAND/COLLAPSE =====
-        header.addActionListener(e -> {
-            boolean visible = content.isVisible();
-            content.setVisible(!visible);
-            header.setText((visible ? "▼  " : "▲  ") + "Template Layouts");
-            outer.revalidate();
-            outer.repaint();
-        });
-
-        outer.add(header, BorderLayout.NORTH);
         outer.add(content, BorderLayout.CENTER);
+
+        // EXPAND / COLLAPSE
+        headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                boolean visible = content.isVisible();
+                content.setVisible(!visible);
+                arrow.setText(visible ? "▼" : "▲");
+                outer.revalidate();
+            }
+        });
 
         return outer;
     }
 
-    // ============================================================
-// GENERIC COLLAPSIBLE SECTION (NOW WORKING LIKE STUDENT DETAILS)
-// ============================================================
-    public static JPanel section(String title) {
-
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 200));
-
-        JButton header = new JButton("▼  " + title);
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setFocusPainted(false);
-        header.setContentAreaFilled(false);
-        header.setBorderPainted(false);
-        header.setHorizontalAlignment(SwingConstants.LEFT);
-
-        // CONTENT PANEL (collapsed by default)
-        JPanel content = new JPanel();
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(Color.WHITE);
-        content.setVisible(false);
-
-        // Placeholder content so expansion works visually.
-        // You can replace this later with actual controls.
-        JLabel placeholder = new JLabel("Content for " + title);
-        placeholder.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        placeholder.setBorder(BorderFactory.createEmptyBorder(5, 20, 5, 5));
-
-        content.add(placeholder);
-        content.add(Box.createVerticalStrut(10));
-
-        // Toggle behaviour
-        header.addActionListener(e -> {
-            boolean visible = content.isVisible();
-            content.setVisible(!visible);
-            header.setText((visible ? "▼  " : "▲  ") + title);
-            outer.revalidate();
-            outer.repaint();
-        });
-
-        outer.add(header, BorderLayout.NORTH);
-        outer.add(content, BorderLayout.CENTER);
-
-        return outer;
-    }
+//    // ============================================================
+//// GENERIC COLLAPSIBLE SECTION (NOW WORKING LIKE STUDENT DETAILS)
+//// ============================================================
+//    public static JPanel section(String title) {
+//
+//        JPanel outer = new JPanel(new BorderLayout());
+//        outer.setBackground(Color.WHITE);
+//        outer.setMaximumSize(new Dimension(250, 200));
+//
+//        JButton header = new JButton("▼  " + title);
+//        header.setFont(new Font("SansSerif", Font.BOLD, 14));
+//        header.setFocusPainted(false);
+//        header.setContentAreaFilled(false);
+//        header.setBorderPainted(false);
+//        header.setHorizontalAlignment(SwingConstants.LEFT);
+//
+//        // CONTENT PANEL (collapsed by default)
+//        JPanel content = new JPanel();
+//        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+//        content.setBackground(Color.WHITE);
+//        content.setVisible(false);
+//
+//        // Placeholder content so expansion works visually.
+//        // You can replace this later with actual controls.
+//        JLabel placeholder = new JLabel("Content for " + title);
+//        placeholder.setFont(new Font("SansSerif", Font.PLAIN, 12));
+//        placeholder.setBorder(BorderFactory.createEmptyBorder(5, 20, 5, 5));
+//
+//        content.add(placeholder);
+//        content.add(Box.createVerticalStrut(10));
+//
+//        // Toggle behaviour
+//        header.addActionListener(e -> {
+//            boolean visible = content.isVisible();
+//            content.setVisible(!visible);
+//            header.setText((visible ? "▼  " : "▲  ") + title);
+//            outer.revalidate();
+//            outer.repaint();
+//        });
+//
+//        outer.add(header, BorderLayout.NORTH);
+//        outer.add(content, BorderLayout.CENTER);
+//
+//        return outer;
+//    }
 //    // ===========================================================
 //    // Zoom button
 //    //============================================================
