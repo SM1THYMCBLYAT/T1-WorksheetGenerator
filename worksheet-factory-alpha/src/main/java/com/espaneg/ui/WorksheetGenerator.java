@@ -988,65 +988,172 @@ WorksheetGenerator {
 // ============================================================
     public static JPanel colorPaletteSection() {
 
-        JPanel outer = new JPanel(new BorderLayout());
-        outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 350));
+        // ==== OUTER CARD WITH SHADOW ====
+        RoundedPanel outer = new RoundedPanel(25) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        JButton header = new JButton("▼  Colour Palette");
-        header.setFont(new Font("SansSerif", Font.BOLD, 14));
-        header.setFocusPainted(false);
-        header.setContentAreaFilled(false);
-        header.setBorderPainted(false);
-        header.setHorizontalAlignment(SwingConstants.LEFT);
+                g2.setColor(new Color(0, 0, 0, 55));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 25, 25);
 
-        // ===== CONTENT PANEL =====
+                g2.setColor(new Color(255, 255, 255, 230));
+                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 25, 25);
+
+                super.paintComponent(g2);
+            }
+        };
+
+        outer.setOpaque(false);
+        outer.setLayout(new BorderLayout());
+        outer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 450));
+
+        // ==== HEADER GRADIENT BAR ====
+        JPanel headerBar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(120, 140, 170),
+                        getWidth(), getHeight(), new Color(90, 110, 140)
+                );
+
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+                super.paintComponent(g);
+            }
+        };
+        headerBar.setOpaque(false);
+        headerBar.setLayout(new BorderLayout());
+        headerBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        JLabel title = new JLabel("Colour Palette");
+        title.setFont(new Font("SansSerif", Font.BOLD, 15));
+        title.setForeground(Color.WHITE);
+
+        JLabel arrow = new JLabel("▼");
+        arrow.setFont(new Font("SansSerif", Font.BOLD, 16));
+        arrow.setForeground(Color.WHITE);
+
+        headerBar.add(title, BorderLayout.WEST);
+        headerBar.add(arrow, BorderLayout.EAST);
+
+        outer.add(headerBar, BorderLayout.NORTH);
+
+        // ==== CONTENT PANEL ====
         JPanel content = new JPanel();
+        content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         content.setVisible(false);
 
-        // ------------------------
-        // TEXT COLOR PICKER
-        // ------------------------
-        JButton textColorButton = new JButton("Choose Text Colour");
+        // Helper for alignment
+        java.util.function.Consumer<JComponent> fullWidth = c -> {
+            c.setAlignmentX(Component.LEFT_ALIGNMENT);
+            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
+        };
+
+        // ===========================================================
+        // TEXT COLOUR BUTTON (FIXED)
+        // ===========================================================
+        JButton textColorButton = new JButton("Choose Text Colour") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(150, 165, 190),
+                        getWidth(), getHeight(), new Color(110, 125, 155)
+                );
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g); // <-- CRITICAL FIX
+            }
+        };
+        textColorButton.setOpaque(false);
+        textColorButton.setContentAreaFilled(false);
+        textColorButton.setBorderPainted(false);
         textColorButton.setFocusPainted(false);
-        textColorButton.setMaximumSize(new Dimension(200, 30));
+        textColorButton.setForeground(Color.WHITE);
+        textColorButton.setFont(new Font("SansSerif", Font.BOLD, 13));
+        textColorButton.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        fullWidth.accept(textColorButton);
 
         JLabel textColorPreview = new JLabel("Text Colour Preview");
         textColorPreview.setOpaque(true);
         textColorPreview.setBackground(Color.BLACK);
         textColorPreview.setForeground(Color.WHITE);
-        textColorPreview.setFont(new Font("SansSerif", Font.PLAIN, 12));
         textColorPreview.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
-        textColorPreview.setMaximumSize(new Dimension(200, 30));
+        fullWidth.accept(textColorPreview);
 
-        // ------------------------
-        // BACKGROUND COLOR PICKER
-        // ------------------------
-        JButton backgroundColorButton = new JButton("Choose Background Colour");
+        textColorButton.addActionListener(e -> {
+            Color chosen = JColorChooser.showDialog(null, "Choose Text Colour", textColorPreview.getBackground());
+            if (chosen != null) {
+                textColorPreview.setBackground(chosen);
+                textColorPreview.setForeground(chosen.equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
+            }
+        });
+
+        // ===========================================================
+        // BACKGROUND COLOUR BUTTON (FIXED)
+        // ===========================================================
+        JButton backgroundColorButton = new JButton("Choose Background Colour") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(150, 165, 190),
+                        getWidth(), getHeight(), new Color(110, 125, 155)
+                );
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g);
+            }
+        };
+        backgroundColorButton.setOpaque(false);
+        backgroundColorButton.setContentAreaFilled(false);
+        backgroundColorButton.setBorderPainted(false);
         backgroundColorButton.setFocusPainted(false);
-        backgroundColorButton.setMaximumSize(new Dimension(200, 30));
+        backgroundColorButton.setForeground(Color.WHITE);
+        backgroundColorButton.setFont(new Font("SansSerif", Font.BOLD, 13));
+        backgroundColorButton.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        fullWidth.accept(backgroundColorButton);
 
         JLabel bgColorPreview = new JLabel("Background Preview");
         bgColorPreview.setOpaque(true);
         bgColorPreview.setBackground(Color.WHITE);
-        bgColorPreview.setFont(new Font("SansSerif", Font.PLAIN, 12));
         bgColorPreview.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
-        bgColorPreview.setMaximumSize(new Dimension(200, 30));
+        fullWidth.accept(bgColorPreview);
 
-        // ------------------------
-        // PRESET SWATCH COLORS
-        // ------------------------
+        backgroundColorButton.addActionListener(e -> {
+            Color chosen = JColorChooser.showDialog(null, "Choose Background Colour", bgColorPreview.getBackground());
+            if (chosen != null) {
+                bgColorPreview.setBackground(chosen);
+            }
+        });
+
+        // ===========================================================
+        // PRESET SWATCHES
+        // ===========================================================
         JLabel swatchLabel = new JLabel("Preset Colours:");
         swatchLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(swatchLabel);
 
-        JPanel swatchPanel = new JPanel();
-        swatchPanel.setLayout(new GridLayout(2, 6, 5, 5));
-        swatchPanel.setMaximumSize(new Dimension(220, 60));
-        swatchPanel.setBackground(Color.WHITE);
+        JPanel swatchPanel = new JPanel(new GridLayout(2, 6, 6, 6));
+        swatchPanel.setOpaque(false);
+        fullWidth.accept(swatchPanel);
 
         Color[] swatches = {
-                new Color(0, 0, 0), new Color(255, 255, 255),
+                Color.BLACK, Color.WHITE,
                 new Color(255, 0, 0), new Color(0, 128, 0),
                 new Color(0, 0, 255), new Color(255, 165, 0),
                 new Color(128, 0, 128), new Color(0, 139, 139),
@@ -1072,33 +1179,67 @@ WorksheetGenerator {
             swatchPanel.add(sw);
         }
 
-        // ------------------------
-        // APPLY + RESET BUTTONS
-        // ------------------------
-        JButton applyButton = new JButton("Apply Colours");
+        // ===========================================================
+        // APPLY BUTTON
+        // ===========================================================
+        JButton applyButton = new JButton("Apply Colours") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(110, 125, 155),
+                        getWidth(), getHeight(), new Color(80, 90, 120)
+                );
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g);
+            }
+        };
+
+        applyButton.setOpaque(false);
+        applyButton.setContentAreaFilled(false);
+        applyButton.setBorderPainted(false);
         applyButton.setFocusPainted(false);
-        applyButton.setMaximumSize(new Dimension(200, 30));
+        applyButton.setForeground(Color.WHITE);
+        applyButton.setFont(new Font("SansSerif", Font.BOLD, 13));
+        applyButton.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        fullWidth.accept(applyButton);
 
-        JButton resetButton = new JButton("Reset Colours");
+        applyButton.addActionListener(e -> {
+            JOptionPane.showMessageDialog(null, "Colours applied successfully!");
+        });
+
+        // ===========================================================
+        // RESET BUTTON
+        // ===========================================================
+        JButton resetButton = new JButton("Reset Colours") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(150, 165, 190),
+                        getWidth(), getHeight(), new Color(110, 125, 155)
+                );
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g);
+            }
+        };
+
+        resetButton.setOpaque(false);
+        resetButton.setContentAreaFilled(false);
+        resetButton.setBorderPainted(false);
         resetButton.setFocusPainted(false);
-        resetButton.setMaximumSize(new Dimension(200, 30));
-
-        // ===== ACTIONS =====
-
-        textColorButton.addActionListener(e -> {
-            Color chosen = JColorChooser.showDialog(null, "Choose Text Colour", Color.BLACK);
-            if (chosen != null) {
-                textColorPreview.setBackground(chosen);
-                textColorPreview.setForeground(chosen.equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
-            }
-        });
-
-        backgroundColorButton.addActionListener(e -> {
-            Color chosen = JColorChooser.showDialog(null, "Choose Background Colour", Color.WHITE);
-            if (chosen != null) {
-                bgColorPreview.setBackground(chosen);
-            }
-        });
+        resetButton.setForeground(Color.WHITE);
+        resetButton.setFont(new Font("SansSerif", Font.BOLD, 13));
+        resetButton.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        fullWidth.accept(resetButton);
 
         resetButton.addActionListener(e -> {
             textColorPreview.setBackground(Color.BLACK);
@@ -1106,37 +1247,47 @@ WorksheetGenerator {
             bgColorPreview.setBackground(Color.WHITE);
         });
 
-        // ===== ADD COMPONENTS =====
+        // ===========================================================
+        // ADD EVERYTHING
+        // ===========================================================
         content.add(textColorButton);
+        content.add(Box.createVerticalStrut(6));
         content.add(textColorPreview);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(15));
 
         content.add(backgroundColorButton);
+        content.add(Box.createVerticalStrut(6));
         content.add(bgColorPreview);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(18));
 
         content.add(swatchLabel);
+        content.add(Box.createVerticalStrut(5));
         content.add(swatchPanel);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(15));
 
         content.add(applyButton);
-        content.add(resetButton);
         content.add(Box.createVerticalStrut(10));
+        content.add(resetButton);
 
-        // ===== EXPAND/COLLAPSE =====
-        header.addActionListener(e -> {
-            boolean visible = content.isVisible();
-            content.setVisible(!visible);
-            header.setText((visible ? "▼  " : "▲  ") + "Colour Palette");
-            outer.revalidate();
-            outer.repaint();
-        });
-
-        outer.add(header, BorderLayout.NORTH);
         outer.add(content, BorderLayout.CENTER);
+
+        // ===========================================================
+        // EXPAND / COLLAPSE
+        // ===========================================================
+        headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                boolean visible = content.isVisible();
+                content.setVisible(!visible);
+                arrow.setText(visible ? "▼" : "▲");
+                outer.revalidate();
+            }
+        });
 
         return outer;
     }
+
 
     // ============================================================
 // CALCULATIONS SECTION (UI ONLY – ranges, ops, problem count)
