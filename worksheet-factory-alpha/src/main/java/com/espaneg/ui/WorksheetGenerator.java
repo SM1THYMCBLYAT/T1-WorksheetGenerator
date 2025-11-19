@@ -40,7 +40,8 @@ WorksheetGenerator {
 
         JPanel leftContent = new JPanel();
         leftContent.setLayout(new BoxLayout(leftContent, BoxLayout.Y_AXIS));
-        leftContent.setBackground(Color.WHITE);
+        leftContent.setOpaque(false);
+
 
         JScrollPane leftScroll = new JScrollPane(leftContent);
         leftScroll.setBounds(0, 120, 270, 780); // moved down to make space for header
@@ -239,42 +240,46 @@ WorksheetGenerator {
     // ============================================================
     public static JPanel createStudentDetailsSection(JPanel canvas) {
 
-        JPanel sectionPanel = new JPanel(new BorderLayout());
-        sectionPanel.setMaximumSize(new Dimension(250, 200));
-        sectionPanel.setBackground(Color.WHITE);
-        sectionPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        // MATCHES your other rounded sidebar panels
+        RoundedPanel sectionPanel = new RoundedPanel(20);
+        sectionPanel.setBackground(new Color(255, 255, 255, 210));
+        sectionPanel.setLayout(new BorderLayout());
+        sectionPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        sectionPanel.setMaximumSize(new Dimension(240, 220));
 
+        // Header label (non-collapsible)
         JLabel headerLabel = new JLabel("Student Details");
-        headerLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        headerLabel.setForeground(new Color(50, 60, 80));
-        headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
+        headerLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
+        headerLabel.setForeground(new Color(45, 60, 80));
+        headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
 
+        sectionPanel.add(headerLabel, BorderLayout.NORTH);
 
+        // Content area
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(Color.WHITE);
-        content.setVisible(true);
+        content.setOpaque(false);
 
         JLabel nameLabel = new JLabel("Name:");
         JTextField nameField = new JTextField();
-        nameField.setMaximumSize(new Dimension(230, 30));
+        nameField.setMaximumSize(new Dimension(200, 30));
 
         JLabel instructionsLabel = new JLabel("Instructions:");
         JTextArea instructionsArea = new JTextArea(4, 20);
         instructionsArea.setLineWrap(true);
         instructionsArea.setWrapStyleWord(true);
+
         JScrollPane scroll = new JScrollPane(instructionsArea);
-        scroll.setMaximumSize(new Dimension(230, 80));
+        scroll.setMaximumSize(new Dimension(200, 80));
 
         content.add(nameLabel);
+        content.add(Box.createVerticalStrut(4));
         content.add(nameField);
-        content.add(Box.createVerticalStrut(5));
+        content.add(Box.createVerticalStrut(10));
         content.add(instructionsLabel);
+        content.add(Box.createVerticalStrut(4));
         content.add(scroll);
 
-
-
-        sectionPanel.add(headerLabel, BorderLayout.NORTH);
         sectionPanel.add(content, BorderLayout.CENTER);
 
         // Canvas display
@@ -301,6 +306,7 @@ WorksheetGenerator {
 
         return sectionPanel;
     }
+
     // ============================================================
 // GRID SECTION (NOW FUNCTIONAL – CONNECTED TO WORKSHEETSETTINGS)
 // ============================================================
