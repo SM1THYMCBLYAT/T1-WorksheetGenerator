@@ -29,43 +29,124 @@ WorksheetGenerator {
         GradientPanel background = new GradientPanel();
         background.setLayout(null);
         frame.setContentPane(background);
+        background.setLayout(null);
+        frame.setContentPane(background);
 
         // ============================================================
-        // LEFT PANEL
-        // ============================================================
+// LEFT SIDEBAR (CLEAN VISUAL + BUG-FREE VERSION)
+// ============================================================
+
         RoundedPanel leftPanel = new RoundedPanel(0);
         leftPanel.setBackground(Color.WHITE);
         leftPanel.setBounds(0, 0, 270, 900);
         leftPanel.setLayout(null);
         background.add(leftPanel);
 
+// ─────────────────────────────────────────
+// TOP BAR INSIDE SIDEBAR (VISUALLY CLEAN)
+// ─────────────────────────────────────────
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setOpaque(false);
+        topBar.setBounds(0, 0, 270, 60);
+        leftPanel.add(topBar);
+
+// ----- HOME ICON -----
+        JLabel homeBtn = new JLabel(ResourceLoader.loadIcon("HOME.png"));
+        homeBtn.setHorizontalAlignment(SwingConstants.CENTER);
+        homeBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+// soft hover without background block
+        homeBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                frame.dispose();
+                UserLogin.main(null);
+            }
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { homeBtn.setForeground(new Color(70,70,70)); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { homeBtn.setForeground(Color.BLACK); }
+        });
+        topBar.add(homeBtn, BorderLayout.WEST);
+
+// ----- HEADER -----
+        JLabel centeredHeader = new JLabel("Customization Panel", SwingConstants.CENTER);
+        centeredHeader.setFont(new Font("SansSerif", Font.BOLD, 17));
+        centeredHeader.setForeground(new Color(40, 50, 70));
+        topBar.add(centeredHeader, BorderLayout.CENTER);
+
+// ----- COLLAPSE ICON -----
+        JLabel collapseBtn = new JLabel(ResourceLoader.loadIcon("EXIT.png"));
+        collapseBtn.setHorizontalAlignment(SwingConstants.CENTER);
+        collapseBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        collapseBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { collapseBtn.setForeground(new Color(70,70,70)); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { collapseBtn.setForeground(Color.BLACK); }
+        });
+        topBar.add(collapseBtn, BorderLayout.EAST);
+
+
+// ─────────────────────────────────────────
+// SCROLLABLE CONTENT (THIS collapses)
+// ─────────────────────────────────────────
         JPanel leftContent = new JPanel();
         leftContent.setLayout(new BoxLayout(leftContent, BoxLayout.Y_AXIS));
         leftContent.setOpaque(false);
 
-
         JScrollPane leftScroll = new JScrollPane(leftContent);
-        leftScroll.setBounds(0, 120, 270, 780); // moved down to make space for header
+        leftScroll.setBounds(0, 60, 270, 840);
         leftScroll.setBorder(null);
-        leftPanel.add(leftScroll);
         leftScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        leftPanel.add(leftScroll);
 
-        // --- ICON FIX 2 & 3: Menu Icons loading ---
-        JLabel menuIcon = new JLabel(ResourceLoader.loadIcon("HOME.png"));
-        menuIcon.setBounds(20, 20, 30, 30);
-        leftPanel.add(menuIcon);
 
-        // Assuming a collapsed menu icon file name
-        JLabel menuCollapseIcon = new JLabel(ResourceLoader.loadIcon("EXIT.png"));
-        menuCollapseIcon.setBounds(220, 20, 30, 30);
-        leftPanel.add(menuCollapseIcon);
+// ─────────────────────────────────────────
+// COLLAPSE/EXPAND LOGIC (SMOOTH + CLEAN)
+// ─────────────────────────────────────────
+        final boolean[] collapsed = {false};
 
-        // ===== ADDED HEADER ABOVE SIDEBAR =====
-        JLabel sidebarHeader = new JLabel("Worksheet Generator");
-        sidebarHeader.setFont(new Font("SansSerif", Font.BOLD, 20));
-        sidebarHeader.setForeground(new Color(50, 60, 80));
-        sidebarHeader.setBounds(20, 70, 250, 30);
-        leftPanel.add(sidebarHeader);
+        collapseBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+
+                if (!collapsed[0]) {
+                    // COLLAPSE SIDEBAR
+                    leftPanel.setBounds(0, 0, 70, 900);
+
+                    // hide scrollable content + header + home icon
+                    centeredHeader.setVisible(false);
+                    leftScroll.setVisible(false);
+                    homeBtn.setVisible(false);
+
+                    // move collapse icon to center
+                    topBar.removeAll();
+                    topBar.add(collapseBtn, BorderLayout.CENTER);
+
+                } else {
+                    // EXPAND SIDEBAR
+                    leftPanel.setBounds(0, 0, 270, 900);
+
+                    // show everything again
+                    centeredHeader.setVisible(true);
+                    leftScroll.setVisible(true);
+                    homeBtn.setVisible(true);
+
+                    // restore full layout
+                    topBar.removeAll();
+                    topBar.add(homeBtn, BorderLayout.WEST);
+                    topBar.add(centeredHeader, BorderLayout.CENTER);
+                    topBar.add(collapseBtn, BorderLayout.EAST);
+                }
+
+                topBar.revalidate();
+                topBar.repaint();
+
+                collapsed[0] = !collapsed[0];
+                background.revalidate();
+                background.repaint();
+            }
+        });
+
+
 
         // ============================================================
         // CANVAS
