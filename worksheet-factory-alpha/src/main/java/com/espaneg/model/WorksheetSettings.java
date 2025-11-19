@@ -23,6 +23,12 @@ public class WorksheetSettings {
     private Color textColor = Color.BLACK;
     private Color backgroundColor = Color.WHITE;
 
+    // --- Import Content Properties ---
+    private String logoPath = null;
+    private java.util.List<String> imagePaths = new java.util.ArrayList<>();
+    private String importedText = "";
+    private boolean isColorMode = true;
+
     // --- Other Settings ---
     private String worksheetTitle = "New Worksheet";
     private String worksheetType = "Tracing Letters";
@@ -117,9 +123,6 @@ public class WorksheetSettings {
         this.textAlignment = alignment;
     }
 
-    /**
-     * Returns a Font object based on current settings
-     */
     public Font getFont() {
         int style = Font.PLAIN;
         if (fontBold) style |= Font.BOLD;
@@ -128,8 +131,16 @@ public class WorksheetSettings {
     }
 
     // ------------------------------------------------
-    // COLOR METHODS
+    // COLOR METHODS (ENHANCED FOR COLOUR PALETTE)
     // ------------------------------------------------
+
+    /**
+     * Update both text and background colors
+     */
+    public void updateColorSettings(Color textColor, Color backgroundColor) {
+        this.textColor = textColor;
+        this.backgroundColor = backgroundColor;
+    }
 
     public Color getTextColor() {
         return textColor;
@@ -145,6 +156,70 @@ public class WorksheetSettings {
 
     public void setBackgroundColor(Color backgroundColor) {
         this.backgroundColor = backgroundColor;
+    }
+
+    // ------------------------------------------------
+    // IMPORT CONTENT METHODS
+    // ------------------------------------------------
+
+    public void updateImportSettings(String logo, java.util.List<String> images,
+                                     String text, boolean colorMode) {
+        this.logoPath = logo;
+        this.imagePaths = images != null ? new java.util.ArrayList<>(images) : new java.util.ArrayList<>();
+        this.importedText = text;
+        this.isColorMode = colorMode;
+    }
+
+    public String getLogoPath() {
+        return logoPath;
+    }
+
+    public void setLogoPath(String logoPath) {
+        this.logoPath = logoPath;
+    }
+
+    public java.util.List<String> getImagePaths() {
+        return imagePaths;
+    }
+
+    public void setImagePaths(java.util.List<String> imagePaths) {
+        this.imagePaths = imagePaths;
+    }
+
+    public void addImagePath(String path) {
+        this.imagePaths.add(path);
+    }
+
+    public void clearImages() {
+        this.imagePaths.clear();
+    }
+
+    public String getImportedText() {
+        return importedText;
+    }
+
+    public void setImportedText(String importedText) {
+        this.importedText = importedText;
+    }
+
+    public boolean isColorMode() {
+        return isColorMode;
+    }
+
+    public void setColorMode(boolean colorMode) {
+        this.isColorMode = colorMode;
+    }
+
+    public boolean hasLogo() {
+        return logoPath != null && !logoPath.isEmpty();
+    }
+
+    public boolean hasImages() {
+        return imagePaths != null && !imagePaths.isEmpty();
+    }
+
+    public boolean hasImportedText() {
+        return importedText != null && !importedText.isEmpty();
     }
 
     // ------------------------------------------------
