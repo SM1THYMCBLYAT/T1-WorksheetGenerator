@@ -240,49 +240,131 @@ WorksheetGenerator {
     // ============================================================
     public static JPanel createStudentDetailsSection(JPanel canvas) {
 
-        // MATCHES your other rounded sidebar panels
-        RoundedPanel sectionPanel = new RoundedPanel(20);
-        sectionPanel.setBackground(new Color(255, 255, 255, 210));
-        sectionPanel.setLayout(new BorderLayout());
-        sectionPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        sectionPanel.setMaximumSize(new Dimension(240, 220));
+        // Outer card with shadow
+        RoundedPanel sectionPanel = new RoundedPanel(25) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Header label (non-collapsible)
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 55));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 25, 25);
+
+                // Card background
+                g2.setColor(new Color(255, 255, 255, 230));
+                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 25, 25);
+
+                super.paintComponent(g2);
+            }
+        };
+
+        sectionPanel.setLayout(new BorderLayout());
+        sectionPanel.setOpaque(false);
+        sectionPanel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+        sectionPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 260));
+
+        // --------------------------
+        // Header gradient bar
+        // --------------------------
+        JPanel headerBar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                GradientPaint gp = new GradientPaint(
+                        0, 0, new Color(120, 140, 170),
+                        getWidth(), getHeight(), new Color(90, 110, 140)
+                );
+                g2.setPaint(gp);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+
+                super.paintComponent(g2);
+            }
+        };
+        headerBar.setOpaque(false);
+        headerBar.setLayout(new BorderLayout());
+        headerBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
         JLabel headerLabel = new JLabel("Student Details");
         headerLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
-        headerLabel.setForeground(new Color(45, 60, 80));
-        headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        headerLabel.setForeground(Color.WHITE);
 
-        sectionPanel.add(headerLabel, BorderLayout.NORTH);
+        headerBar.add(headerLabel, BorderLayout.WEST);
+        sectionPanel.add(headerBar, BorderLayout.NORTH);
 
+        // Divider
+        JPanel divider = new JPanel();
+        divider.setPreferredSize(new Dimension(200, 1));
+        divider.setBackground(new Color(180, 180, 180));
+
+        // --------------------------
         // Content area
+        // --------------------------
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
 
-        JLabel nameLabel = new JLabel("Name:");
-        JTextField nameField = new JTextField();
-        nameField.setMaximumSize(new Dimension(200, 30));
+        content.add(Box.createVerticalStrut(10));
+        content.add(divider);
+        content.add(Box.createVerticalStrut(12));
 
+        // Labels
+        JLabel nameLabel = new JLabel("Name:");
         JLabel instructionsLabel = new JLabel("Instructions:");
+
+        // --------------------------
+        // Name field (rounded + centered)
+        // --------------------------
+        JPanel nameWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        nameWrapper.setOpaque(false);
+
+        JTextField nameField = new JTextField();
+        nameField.setPreferredSize(new Dimension(180, 32));
+        nameField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(180, 180, 180), 1, true),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
+        nameField.setBackground(Color.WHITE);
+
+        nameWrapper.add(nameField);
+
+        // --------------------------
+        // Instructions field (rounded + centered)
+        // --------------------------
+        JPanel instructionsWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        instructionsWrapper.setOpaque(false);
+
         JTextArea instructionsArea = new JTextArea(4, 20);
         instructionsArea.setLineWrap(true);
         instructionsArea.setWrapStyleWord(true);
 
         JScrollPane scroll = new JScrollPane(instructionsArea);
-        scroll.setMaximumSize(new Dimension(200, 80));
+        scroll.setPreferredSize(new Dimension(180, 80));
+        scroll.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(180, 180, 180), 1, true),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        instructionsArea.setBackground(Color.WHITE);
 
+        instructionsWrapper.add(scroll);
+
+        // Add to content
         content.add(nameLabel);
         content.add(Box.createVerticalStrut(4));
-        content.add(nameField);
-        content.add(Box.createVerticalStrut(10));
+        content.add(nameWrapper);
+
+        content.add(Box.createVerticalStrut(12));
         content.add(instructionsLabel);
         content.add(Box.createVerticalStrut(4));
-        content.add(scroll);
+        content.add(instructionsWrapper);
 
         sectionPanel.add(content, BorderLayout.CENTER);
 
-        // Canvas display
+        // --------------------------
+        // Canvas live update
+        // --------------------------
         JLabel display = new JLabel();
         display.setVerticalAlignment(SwingConstants.TOP);
         display.setFont(new Font("SansSerif", Font.PLAIN, 16));
@@ -306,6 +388,7 @@ WorksheetGenerator {
 
         return sectionPanel;
     }
+
 
     // ============================================================
 // GRID SECTION (NOW FUNCTIONAL – CONNECTED TO WORKSHEETSETTINGS)
