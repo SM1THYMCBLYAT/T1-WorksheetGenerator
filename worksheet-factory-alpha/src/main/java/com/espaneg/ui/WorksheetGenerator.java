@@ -81,8 +81,8 @@ WorksheetGenerator {
         leftContent.add(createStudentDetailsSection(canvas));
         leftContent.add(gridSection(canvas, settings));
         leftContent.add(fontSection());
-        leftContent.add(importContentSection(canvas, settings));
-        leftContent.add(colorPaletteSection(canvas, settings));
+        leftContent.add(importContentSection());
+        leftContent.add(colorPaletteSection());
         leftContent.add(calculationsSection());
         leftContent.add(quickFillSection());
         leftContent.add(templateSection());
@@ -265,7 +265,6 @@ WorksheetGenerator {
 
         return sectionPanel;
     }
-
     // ============================================================
 // GRID SECTION (NOW FUNCTIONAL – CONNECTED TO WORKSHEETSETTINGS)
 // ============================================================
@@ -499,7 +498,6 @@ WorksheetGenerator {
         canvas.revalidate();
         canvas.repaint();
     }
-
     // ============================================================
 // FONT SECTION (UI ONLY – FULL CONTROLS AND PREVIEW)
 // ============================================================
@@ -646,13 +644,13 @@ WorksheetGenerator {
     }
 
     // ============================================================
-// IMPORT CONTENT SECTION (NOW FUNCTIONAL – CONNECTED TO WORKSHEETSETTINGS)
+// IMPORT CONTENT SECTION (UI ONLY – Logo, Images, Text, B/W-Color)
 // ============================================================
-    public static JPanel importContentSection(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
+    public static JPanel importContentSection() {
 
         JPanel outer = new JPanel(new BorderLayout());
         outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 450));
+        outer.setMaximumSize(new Dimension(250, 380));
 
         JButton header = new JButton("▼  Import Content");
         header.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -666,10 +664,6 @@ WorksheetGenerator {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBackground(Color.WHITE);
         content.setVisible(false);
-
-        // Store selected files
-        final String[] selectedLogoPath = {null};
-        final java.util.List<String> selectedImagePaths = new java.util.ArrayList<>();
 
         // ------------------------
         // ADD LOGO BUTTON
@@ -718,6 +712,7 @@ WorksheetGenerator {
         colorMode.setFont(new Font("SansSerif", Font.PLAIN, 12));
         bwMode.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
+        // Default = Color
         colorMode.setSelected(true);
 
         // ------------------------
@@ -740,15 +735,7 @@ WorksheetGenerator {
         previewLabel.setBackground(new Color(245, 245, 245));
         previewLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         previewLabel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        previewLabel.setMaximumSize(new Dimension(220, 80));
-        previewLabel.setVerticalAlignment(SwingConstants.TOP);
-
-        // ------------------------
-        // APPLY BUTTON
-        // ------------------------
-        JButton applyButton = new JButton("Apply to Canvas");
-        applyButton.setFocusPainted(false);
-        applyButton.setMaximumSize(new Dimension(200, 30));
+        previewLabel.setMaximumSize(new Dimension(220, 60));
 
         // ------------------------
         // REMOVE CONTENT BUTTON
@@ -761,113 +748,52 @@ WorksheetGenerator {
 
         addLogo.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
-            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-                    "Image files", "jpg", "jpeg", "png", "gif"));
             int result = chooser.showOpenDialog(null);
 
             if (result == JFileChooser.APPROVE_OPTION) {
-                selectedLogoPath[0] = chooser.getSelectedFile().getAbsolutePath();
-                previewLabel.setText("<html><b>Logo:</b> " +
-                        chooser.getSelectedFile().getName() + "</html>");
+                previewLabel.setText("Logo Added: " + chooser.getSelectedFile().getName());
             }
         });
 
         addImages.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setMultiSelectionEnabled(true);
-            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-                    "Image files", "jpg", "jpeg", "png", "gif"));
             int result = chooser.showOpenDialog(null);
 
             if (result == JFileChooser.APPROVE_OPTION) {
                 File[] files = chooser.getSelectedFiles();
-                for (File file : files) {
-                    selectedImagePaths.add(file.getAbsolutePath());
-                }
-
-                StringBuilder preview = new StringBuilder("<html><b>Images:</b> " +
-                        selectedImagePaths.size() + " selected<br>");
-                for (int i = 0; i < Math.min(3, selectedImagePaths.size()); i++) {
-                    preview.append("• ").append(new File(selectedImagePaths.get(i)).getName()).append("<br>");
-                }
-                if (selectedImagePaths.size() > 3) {
-                    preview.append("...and ").append(selectedImagePaths.size() - 3).append(" more");
-                }
-                preview.append("</html>");
-                previewLabel.setText(preview.toString());
+                previewLabel.setText("Images Added: " + files.length);
             }
         });
 
         importImage.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
-            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-                    "Image files", "jpg", "jpeg", "png", "gif"));
             int result = chooser.showOpenDialog(null);
 
             if (result == JFileChooser.APPROVE_OPTION) {
-                selectedImagePaths.add(chooser.getSelectedFile().getAbsolutePath());
-                previewLabel.setText("<html><b>Imported Image:</b><br>" +
-                        chooser.getSelectedFile().getName() + "</html>");
+                previewLabel.setText("Imported Image: " + chooser.getSelectedFile().getName());
             }
         });
 
         importTextFile.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
-            chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-                    "Text files", "txt"));
             int result = chooser.showOpenDialog(null);
 
             if (result == JFileChooser.APPROVE_OPTION) {
-                try {
-                    String contentText = new String(java.nio.file.Files.readAllBytes(
-                            chooser.getSelectedFile().toPath()));
-                    pasteArea.setText(contentText);
-                    previewLabel.setText("<html><b>Text File Imported:</b><br>" +
-                            chooser.getSelectedFile().getName() + "</html>");
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(null,
-                            "Error reading file: " + ex.getMessage(),
-                            "Error", JOptionPane.ERROR_MESSAGE);
-                }
+                previewLabel.setText("Imported Text File: " + chooser.getSelectedFile().getName());
             }
         });
 
         pasteArea.getDocument().addDocumentListener(simpleListener(() -> {
             if (!pasteArea.getText().trim().isEmpty()) {
-                String text = pasteArea.getText();
-                String preview = text.length() > 50 ?
-                        text.substring(0, 50) + "..." : text;
                 previewLabel.setText("<html><b>Pasted Text:</b><br>" +
-                        preview.replace("\n", " ") + "</html>");
+                        pasteArea.getText().replace("\n", "<br>") + "</html>");
             }
         }));
 
-        applyButton.addActionListener(e -> {
-            String text = pasteArea.getText().trim();
-            boolean isColor = colorMode.isSelected();
-
-            settings.updateImportSettings(
-                    selectedLogoPath[0],
-                    selectedImagePaths,
-                    text,
-                    isColor
-            );
-
-            drawImportedContentOnCanvas(canvas, settings);
-
-            JOptionPane.showMessageDialog(null,
-                    "Content applied to canvas!",
-                    "Success", JOptionPane.INFORMATION_MESSAGE);
-        });
-
         removeButton.addActionListener(e -> {
             pasteArea.setText("");
-            selectedLogoPath[0] = null;
-            selectedImagePaths.clear();
             previewLabel.setText("No content imported");
-
-            settings.updateImportSettings(null, null, "", true);
-            drawImportedContentOnCanvas(canvas, settings);
         });
 
         // ===== ADD COMPONENTS =====
@@ -895,9 +821,6 @@ WorksheetGenerator {
         content.add(previewLabel);
         content.add(Box.createVerticalStrut(10));
 
-        content.add(applyButton);
-        content.add(Box.createVerticalStrut(5));
-
         content.add(removeButton);
         content.add(Box.createVerticalStrut(10));
 
@@ -917,181 +840,13 @@ WorksheetGenerator {
     }
 
     // ============================================================
-// DRAW IMPORTED CONTENT ON CANVAS (RENDERING LOGIC)
+// COLOUR PALETTE SECTION (UI ONLY – Pickers, Swatches, Reset)
 // ============================================================
-    private static void drawImportedContentOnCanvas(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
-        canvas.removeAll();
-
-        JPanel contentPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-                int yPos = 20;
-
-                if (settings.hasLogo()) {
-                    try {
-                        ImageIcon logoIcon = new ImageIcon(settings.getLogoPath());
-                        Image logo = logoIcon.getImage();
-                        int logoWidth = 80;
-                        int logoHeight = 80;
-
-                        if (!settings.isColorMode()) {
-                            logo = toGrayscale(logo);
-                        }
-
-                        g2d.drawImage(logo, 10, yPos, logoWidth, logoHeight, null);
-                        yPos += logoHeight + 10;
-                    } catch (Exception ex) {
-                        g2d.setColor(Color.RED);
-                        g2d.drawString("Logo load error", 10, yPos);
-                        yPos += 20;
-                    }
-                }
-
-                if (settings.hasImportedText()) {
-                    try {
-                        g2d.setFont(settings.getFont());
-                        g2d.setColor(settings.getTextColor());
-                        String text = settings.getImportedText();
-                        String[] lines = text.split("\n");
-
-                        for (String line : lines) {
-                            if (line.isEmpty()) {
-                                yPos += g2d.getFontMetrics().getHeight();
-                                continue;
-                            }
-
-                            String[] words = line.split(" ");
-                            StringBuilder currentLine = new StringBuilder();
-
-                            for (String word : words) {
-                                String testLine = currentLine.toString() + word + " ";
-                                FontMetrics fm = g2d.getFontMetrics();
-
-                                if (fm.stringWidth(testLine) < getWidth() - 40) {
-                                    currentLine.append(word).append(" ");
-                                } else {
-                                    if (currentLine.length() > 0) {
-                                        g2d.drawString(currentLine.toString(), 10, yPos);
-                                        yPos += fm.getHeight();
-                                    }
-                                    currentLine = new StringBuilder(word + " ");
-                                }
-                            }
-
-                            if (currentLine.length() > 0) {
-                                g2d.drawString(currentLine.toString(), 10, yPos);
-                                yPos += g2d.getFontMetrics().getHeight();
-                            }
-                        }
-                        yPos += 10;
-                    } catch (Exception ex) {
-                        g2d.setColor(Color.RED);
-                        g2d.drawString("Text render error", 10, yPos);
-                        yPos += 20;
-                    }
-                }
-
-                if (settings.hasImages()) {
-                    try {
-                        int imgX = 10, imgY = yPos, imgWidth = 100, imgHeight = 100, spacing = 10;
-                        int imagesPerRow = Math.max(1, (getWidth() - 20) / (imgWidth + spacing));
-                        int count = 0;
-
-                        for (String imagePath : settings.getImagePaths()) {
-                            try {
-                                ImageIcon imageIcon = new ImageIcon(imagePath);
-                                Image img = imageIcon.getImage();
-
-                                if (!settings.isColorMode()) {
-                                    img = toGrayscale(img);
-                                }
-
-                                g2d.drawImage(img, imgX, imgY, imgWidth, imgHeight, null);
-                                imgX += imgWidth + spacing;
-                                count++;
-
-                                if (count % imagesPerRow == 0) {
-                                    imgX = 10;
-                                    imgY += imgHeight + spacing;
-                                }
-                            } catch (Exception ex) {
-                                g2d.setColor(Color.RED);
-                                g2d.drawString("Image error", imgX, imgY + 20);
-                            }
-                        }
-                    } catch (Exception ex) {
-                        g2d.setColor(Color.RED);
-                        g2d.drawString("Images render error", 10, yPos);
-                    }
-                }
-
-                if (settings.isShowGrid()) {
-                    try {
-                        drawGrid(g2d, settings);
-                    } catch (Exception ex) {
-                    }
-                }
-            }
-
-            private void drawGrid(Graphics2D g2d, com.espaneg.model.WorksheetSettings settings) {
-                int gridSize = settings.getGridSize();
-                Color baseColor = settings.getGridColor();
-                float opacity = settings.getGridOpacity();
-                int alpha = Math.round((opacity / 100.0f) * 255);
-                Color gridColor = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alpha);
-
-                g2d.setColor(gridColor);
-                g2d.setStroke(new BasicStroke(1.0f));
-                int width = getWidth();
-                int height = getHeight();
-
-                if (settings.isGridVertical()) {
-                    for (int x = gridSize; x < width; x += gridSize) {
-                        g2d.drawLine(x, 0, x, height);
-                    }
-                }
-                if (settings.isGridHorizontal()) {
-                    for (int y = gridSize; y < height; y += gridSize) {
-                        g2d.drawLine(0, y, width, y);
-                    }
-                }
-            }
-
-            private Image toGrayscale(Image img) {
-                int width = img.getWidth(null);
-                int height = img.getHeight(null);
-                if (width <= 0 || height <= 0) return img;
-
-                java.awt.image.BufferedImage grayImage = new java.awt.image.BufferedImage(
-                        width, height, java.awt.image.BufferedImage.TYPE_BYTE_GRAY);
-                Graphics2D g2d = grayImage.createGraphics();
-                g2d.drawImage(img, 0, 0, null);
-                g2d.dispose();
-                return grayImage;
-            }
-        };
-
-        contentPanel.setBackground(settings.getBackgroundColor());
-        contentPanel.setLayout(new BorderLayout());
-        canvas.setLayout(new BorderLayout());
-        canvas.add(contentPanel, BorderLayout.CENTER);
-        canvas.revalidate();
-        canvas.repaint();
-    }
-    // ============================================================
-// COLOUR PALETTE SECTION (NOW FUNCTIONAL – CONNECTED TO WORKSHEETSETTINGS)
-// ============================================================
-    public static JPanel colorPaletteSection(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
+    public static JPanel colorPaletteSection() {
 
         JPanel outer = new JPanel(new BorderLayout());
         outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 400));
+        outer.setMaximumSize(new Dimension(250, 350));
 
         JButton header = new JButton("▼  Colour Palette");
         header.setFont(new Font("SansSerif", Font.BOLD, 14));
@@ -1106,10 +861,6 @@ WorksheetGenerator {
         content.setBackground(Color.WHITE);
         content.setVisible(false);
 
-        // Store selected colors
-        final Color[] selectedTextColor = {settings.getTextColor()};
-        final Color[] selectedBgColor = {settings.getBackgroundColor()};
-
         // ------------------------
         // TEXT COLOR PICKER
         // ------------------------
@@ -1119,8 +870,8 @@ WorksheetGenerator {
 
         JLabel textColorPreview = new JLabel("Text Colour Preview");
         textColorPreview.setOpaque(true);
-        textColorPreview.setBackground(selectedTextColor[0]);
-        textColorPreview.setForeground(selectedTextColor[0].equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
+        textColorPreview.setBackground(Color.BLACK);
+        textColorPreview.setForeground(Color.WHITE);
         textColorPreview.setFont(new Font("SansSerif", Font.PLAIN, 12));
         textColorPreview.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
         textColorPreview.setMaximumSize(new Dimension(200, 30));
@@ -1134,7 +885,7 @@ WorksheetGenerator {
 
         JLabel bgColorPreview = new JLabel("Background Preview");
         bgColorPreview.setOpaque(true);
-        bgColorPreview.setBackground(selectedBgColor[0]);
+        bgColorPreview.setBackground(Color.WHITE);
         bgColorPreview.setFont(new Font("SansSerif", Font.PLAIN, 12));
         bgColorPreview.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
         bgColorPreview.setMaximumSize(new Dimension(200, 30));
@@ -1169,10 +920,8 @@ WorksheetGenerator {
             sw.addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override
                 public void mouseClicked(java.awt.event.MouseEvent evt) {
-                    selectedTextColor[0] = c;
                     textColorPreview.setBackground(c);
-                    textColorPreview.setForeground(c.equals(Color.BLACK) || c.equals(Color.BLUE)
-                            || c.getRed() + c.getGreen() + c.getBlue() < 300 ? Color.WHITE : Color.BLACK);
+                    textColorPreview.setForeground(c.equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
                 }
             });
 
@@ -1180,62 +929,37 @@ WorksheetGenerator {
         }
 
         // ------------------------
-        // APPLY BUTTON - CRITICAL CONNECTION
+        // APPLY + RESET BUTTONS
         // ------------------------
         JButton applyButton = new JButton("Apply Colours");
         applyButton.setFocusPainted(false);
         applyButton.setMaximumSize(new Dimension(200, 30));
 
-        applyButton.addActionListener(e -> {
-            // Update WorksheetSettings with selected colors
-            settings.updateColorSettings(selectedTextColor[0], selectedBgColor[0]);
-
-            // Redraw canvas with new colors
-            applyColorsToCanvas(canvas, settings);
-
-            JOptionPane.showMessageDialog(null,
-                    "Colours applied successfully!",
-                    "Success", JOptionPane.INFORMATION_MESSAGE);
-        });
-
-        // ------------------------
-        // RESET BUTTON
-        // ------------------------
         JButton resetButton = new JButton("Reset Colours");
         resetButton.setFocusPainted(false);
         resetButton.setMaximumSize(new Dimension(200, 30));
 
-        resetButton.addActionListener(e -> {
-            selectedTextColor[0] = Color.BLACK;
-            selectedBgColor[0] = Color.WHITE;
-
-            textColorPreview.setBackground(Color.BLACK);
-            textColorPreview.setForeground(Color.WHITE);
-            bgColorPreview.setBackground(Color.WHITE);
-
-            // Update settings and canvas
-            settings.updateColorSettings(Color.BLACK, Color.WHITE);
-            applyColorsToCanvas(canvas, settings);
-        });
-
-        // ===== COLOR PICKER ACTIONS =====
+        // ===== ACTIONS =====
 
         textColorButton.addActionListener(e -> {
-            Color chosen = JColorChooser.showDialog(null, "Choose Text Colour", selectedTextColor[0]);
+            Color chosen = JColorChooser.showDialog(null, "Choose Text Colour", Color.BLACK);
             if (chosen != null) {
-                selectedTextColor[0] = chosen;
                 textColorPreview.setBackground(chosen);
-                textColorPreview.setForeground(chosen.equals(Color.BLACK) || chosen.equals(Color.BLUE)
-                        || chosen.getRed() + chosen.getGreen() + chosen.getBlue() < 300 ? Color.WHITE : Color.BLACK);
+                textColorPreview.setForeground(chosen.equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
             }
         });
 
         backgroundColorButton.addActionListener(e -> {
-            Color chosen = JColorChooser.showDialog(null, "Choose Background Colour", selectedBgColor[0]);
+            Color chosen = JColorChooser.showDialog(null, "Choose Background Colour", Color.WHITE);
             if (chosen != null) {
-                selectedBgColor[0] = chosen;
                 bgColorPreview.setBackground(chosen);
             }
+        });
+
+        resetButton.addActionListener(e -> {
+            textColorPreview.setBackground(Color.BLACK);
+            textColorPreview.setForeground(Color.WHITE);
+            bgColorPreview.setBackground(Color.WHITE);
         });
 
         // ===== ADD COMPONENTS =====
@@ -1252,7 +976,6 @@ WorksheetGenerator {
         content.add(Box.createVerticalStrut(10));
 
         content.add(applyButton);
-        content.add(Box.createVerticalStrut(5));
         content.add(resetButton);
         content.add(Box.createVerticalStrut(10));
 
@@ -1271,20 +994,6 @@ WorksheetGenerator {
         return outer;
     }
 
-    // ============================================================
-// APPLY COLORS TO CANVAS (RENDERING LOGIC)
-// ============================================================
-    private static void applyColorsToCanvas(JPanel canvas, com.espaneg.model.WorksheetSettings settings) {
-        // If there's already content (imported text/images), redraw it with new colors
-        if (settings.hasImportedText() || settings.hasImages() || settings.hasLogo()) {
-            drawImportedContentOnCanvas(canvas, settings);
-        } else {
-            // Just apply background color if no content
-            canvas.setBackground(settings.getBackgroundColor());
-            canvas.revalidate();
-            canvas.repaint();
-        }
-    }
     // ============================================================
 // CALCULATIONS SECTION (UI ONLY – ranges, ops, problem count)
 // ============================================================
