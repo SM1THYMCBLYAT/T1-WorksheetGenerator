@@ -46,6 +46,7 @@ WorksheetGenerator {
         leftScroll.setBounds(0, 120, 270, 780); // moved down to make space for header
         leftScroll.setBorder(null);
         leftPanel.add(leftScroll);
+        leftScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
         // --- ICON FIX 2 & 3: Menu Icons loading ---
         JLabel menuIcon = new JLabel(ResourceLoader.loadIcon("HOME.png"));
@@ -122,6 +123,48 @@ WorksheetGenerator {
         moreButton.setFont(new Font("SansSerif", Font.BOLD, 24));
         moreButton.setBounds(1180, 30, 60, 45);
         background.add(moreButton);
+
+        // ===== THREE DOTS DROPDOWN MENU =====
+        JPopupMenu moreMenu = new JPopupMenu() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Soft white/grey rounded menu background
+                g2.setColor(new Color(255, 255, 255, 240));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+            }
+        };
+
+        moreMenu.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        moreMenu.setOpaque(false); // allows custom rounded BG
+
+        JMenuItem settingsItem = new JMenuItem("Leave a review");
+        JMenuItem helpItem = new JMenuItem("Contact us");
+        JMenuItem aboutItem = new JMenuItem("FAQs");
+        JMenuItem exitItem = new JMenuItem("Exit");
+
+        Font menuFont = new Font("SansSerif", Font.PLAIN, 14);
+        settingsItem.setFont(menuFont);
+        helpItem.setFont(menuFont);
+        aboutItem.setFont(menuFont);
+        exitItem.setFont(menuFont);
+
+        moreMenu.add(settingsItem);
+        moreMenu.add(helpItem);
+        moreMenu.add(aboutItem);
+        moreMenu.addSeparator();
+        moreMenu.add(exitItem);
+
+// EXIT button closes the app
+        exitItem.addActionListener(e -> System.exit(0));
+
+// Show dropdown under the button
+        moreButton.addActionListener(e -> {
+            moreMenu.show(moreButton, 0, moreButton.getHeight());
+        });
+
 
         // ============================================================
         // TOOLBAR (BOTTOM)
@@ -272,7 +315,7 @@ WorksheetGenerator {
 
         JPanel outer = new JPanel(new BorderLayout());
         outer.setBackground(Color.WHITE);
-        outer.setMaximumSize(new Dimension(250, 350));
+        outer.setMaximumSize(new Dimension(250, 200));
 
         JButton header = new JButton("▼  Grid");
         header.setFont(new Font("SansSerif", Font.BOLD, 14));
