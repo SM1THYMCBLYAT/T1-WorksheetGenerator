@@ -6,9 +6,12 @@ import com.espaneg.utils.ResourceLoader;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.awt.font.TextAttribute;
-import javax.swing.text.JTextComponent;
 
 public class WorksheetGenerator {
     // Page state
@@ -19,6 +22,12 @@ public class WorksheetGenerator {
     static int marginBottom = 50;
     static int marginLeft = 50;
     static int marginRight = 50;
+    // header & center content references (for cross-method updates)
+    static JPanel headerPanel;
+    static JPanel centerContentPanel; // holds grid / editor / templates etc.
+    static JLabel headerLogoLabel;
+    static JLabel headerNameLabel;
+    static JLabel headerInstructionsLabel;
 
     // Orientation: true = portrait, false = landscape
     static boolean portrait = true;
@@ -68,7 +77,7 @@ public class WorksheetGenerator {
         homeBtn.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
                 frame.dispose();
-                UserLogin.main(null);
+//                UserLogin (null);
             }
         });
         topBar.add(homeBtn, BorderLayout.WEST);
@@ -208,10 +217,11 @@ public class WorksheetGenerator {
 
         // A "page-like" panel that will hold worksheet content; it can be large and will be scrollable
         // Wrapper that RESIZES but does not draw
-        JPanel pagePanel = new JPanel(new GridBagLayout());
+        // ---------- PAGE PANEL (with header + center content) ----------
+        JPanel pagePanel = new JPanel(new BorderLayout());
         pagePanel.setOpaque(false);
 
-// Actual render surface (the page)
+// The actual white "paper" area renderer
         JPanel renderPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -220,47 +230,47 @@ public class WorksheetGenerator {
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                // Background
                 g2.setColor(Color.WHITE);
                 g2.fillRect(0, 0, getWidth(), getHeight());
 
-                // === MARGIN GUIDE DRAWING ===
                 if (showMargins) {
                     g2.setColor(new Color(0, 0, 0, 60));
                     g2.setStroke(new BasicStroke(1.2f));
-
                     int left = marginLeft;
                     int top = marginTop;
                     int right = getWidth() - marginRight;
                     int bottom = getHeight() - marginBottom;
-
                     g2.drawRect(left, top, right - left, bottom - top);
                 }
-
-                // === ORIENTATION & SCALING SUPPORTED ===
-                // Grid and content repaint happen naturally here
             }
         };
         renderPanel.setLayout(new BorderLayout());
         renderPanel.setBorder(new LineBorder(new Color(170, 170, 255), 2, true));
         renderPanel.setPreferredSize(new Dimension(1000, 1400));
+        renderPanel.setBackground(Color.WHITE);
+        renderPanel.setOpaque(true);
 
-// Render panel in center of pagePanel
-        pagePanel.add(renderPanel);
+// Center area holds the editable/grid content
+        centerContentPanel = new JPanel(new BorderLayout());
+        centerContentPanel.setBackground(Color.WHITE);
+        centerContentPanel.setOpaque(true);
 
-        // Keep a reference to worksheet settings
+
+// Keep a reference to worksheet settings
         WorksheetSettings settings = new WorksheetSettings("Default", "Tracing Letters", 20);
+
+// Build fixed header INSIDE the white render panel
+        headerPanel = buildHeaderPanel(pagePanel, settings);
+        renderPanel.add(headerPanel, BorderLayout.NORTH);
+
+// Put center content ALSO inside renderPanel
+        renderPanel.add(centerContentPanel, BorderLayout.CENTER);
+// white paper to the page panel (THIS WAS MISSING)
+        pagePanel.add(renderPanel, BorderLayout.CENTER);
+
 
         // Add default blank area or grid area
         drawGridOnCanvas(pagePanel, settings);
-
-        // Live display label at top of page (updated by Student Details)
-        JLabel pageTopDisplay = new JLabel();
-        pageTopDisplay.setVerticalAlignment(SwingConstants.TOP);
-        pageTopDisplay.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        pageTopDisplay.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-
-        pagePanel.add(pageTopDisplay, BorderLayout.NORTH);
 
         // Scroll pane that holds the pagePanel
         // Center wrapper for responsive canvas
@@ -302,13 +312,105 @@ public class WorksheetGenerator {
         // Left icon group
         JPanel iconGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 18, 10));
         iconGroup.setOpaque(false);
-        iconGroup.add(toolbarIcon("UNDO.png", 0));
-        iconGroup.add(toolbarIcon("ARROWLEFT.png", 0));
-        iconGroup.add(toolbarIcon("ALIGNLEFT.png", 0));
-        iconGroup.add(toolbarIcon("ALIGNCENTER.png", 0));
-        iconGroup.add(toolbarIcon("ALIGNRIGHT.png", 0));
-        iconGroup.add(toolbarIcon("ARROWRIGHT.png", 0));
-        iconGroup.add(toolbarIcon("REDO.png", 0));
+        JLabel undoBtn = toolbarIcon("UNDO.png", 0);
+        JLabel leftArrowBtn = toolbarIcon("ARROWLEFT.png", 0);
+        JLabel alignLeftBtn = toolbarIcon("ALIGNLEFT.png", 0);
+        JLabel alignCenterBtn = toolbarIcon("ALIGNCENTER.png", 0);
+        JLabel alignRightBtn = toolbarIcon("ALIGNRIGHT.png", 0);
+        JLabel rightArrowBtn = toolbarIcon("ARROWRIGHT.png", 0);
+        JLabel redoBtn = toolbarIcon("REDO.png", 0);
+
+        iconGroup.add(undoBtn);
+        iconGroup.add(leftArrowBtn);
+        iconGroup.add(alignLeftBtn);
+        iconGroup.add(alignCenterBtn);
+        iconGroup.add(alignRightBtn);
+        iconGroup.add(rightArrowBtn);
+        iconGroup.add(redoBtn);
+// ---------------------------------------------------------
+// TOOLBAR ACTIONS
+// ---------------------------------------------------------
+
+        final String[] lastContent = {""};
+        final String[] redoContent = {""};
+
+// UNDO
+        undoBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (centerContentPanel.getComponentCount() > 0 &&
+                        centerContentPanel.getComponent(0) instanceof JScrollPane scroll) {
+
+                    JTextPane editor = (JTextPane) scroll.getViewport().getView();
+                    redoContent[0] = editor.getText();
+                    editor.setText(lastContent[0]);
+                }
+            }
+        });
+
+// REDO
+        redoBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (centerContentPanel.getComponentCount() > 0 &&
+                        centerContentPanel.getComponent(0) instanceof JScrollPane scroll) {
+
+                    JTextPane editor = (JTextPane) scroll.getViewport().getView();
+                    editor.setText(redoContent[0]);
+                }
+            }
+        });
+
+// Save editor text whenever new content is added
+        centerContentPanel.addContainerListener(new java.awt.event.ContainerAdapter() {
+            @Override public void componentAdded(java.awt.event.ContainerEvent e) {
+                if (e.getChild() instanceof JScrollPane scroll) {
+                    JTextPane editor = (JTextPane) scroll.getViewport().getView();
+                    lastContent[0] = editor.getText();
+                }
+            }
+        });
+
+// ALIGN LEFT
+        alignLeftBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                applyAlignmentToEditor(StyleConstants.ALIGN_LEFT);
+            }
+        });
+
+// ALIGN CENTER
+        alignCenterBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                applyAlignmentToEditor(StyleConstants.ALIGN_CENTER);
+            }
+        });
+
+// ALIGN RIGHT
+        alignRightBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                applyAlignmentToEditor(StyleConstants.ALIGN_RIGHT);
+            }
+        });
+
+// ARROWS – scroll canvas left/right
+        leftArrowBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                JScrollPane scroll = (JScrollPane) canvasContainer.getParent()
+                        .getParent();
+                scroll.getHorizontalScrollBar().setValue(
+                        scroll.getHorizontalScrollBar().getValue() - 200
+                );
+            }
+        });
+
+        rightArrowBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                JScrollPane scroll = (JScrollPane) canvasContainer.getParent()
+                        .getParent();
+                scroll.getHorizontalScrollBar().setValue(
+                        scroll.getHorizontalScrollBar().getValue() + 200
+                );
+            }
+        });
+
         toolbar.add(iconGroup, BorderLayout.WEST);
 
         // Right button group
@@ -362,17 +464,19 @@ public class WorksheetGenerator {
         // BUILD SIDEBAR SECTIONS (these methods will update pageTopDisplay / pagePanel as needed)
         // ============================================================
         // Create student details section with live preview writer
-        leftContent.add(createStudentDetailsSection(pagePanel, pageTopDisplay));
+        leftContent.add(createStudentDetailsSection(pagePanel));
+
         leftContent.add(Box.createVerticalStrut(8));
         leftContent.add(gridSection(pagePanel, settings));
         leftContent.add(pageSizeSection(pagePanel, canvasScroll));
 
         leftContent.add(Box.createVerticalStrut(8));
-        leftContent.add(fontSection());
+        leftContent.add(fontSection(pagePanel, settings));
         leftContent.add(Box.createVerticalStrut(8));
-        leftContent.add(importContentSection());
+        leftContent.add(importContentSection(pagePanel));
+
         leftContent.add(Box.createVerticalStrut(8));
-        leftContent.add(colorPaletteSection(pagePanel, renderPanel, null, settings));
+//        leftContent.add(colorPaletteSection(pagePanel, renderPanel, null, settings));
         leftContent.add(Box.createVerticalStrut(8));
         leftContent.add(calculationsSection());
         leftContent.add(Box.createVerticalStrut(8));
@@ -393,7 +497,7 @@ public class WorksheetGenerator {
     // ===========================
     // STUDENT DETAILS (updates pageTopDisplay)
     // ===========================
-    public static JPanel createStudentDetailsSection(JPanel pagePanel, JLabel display) {
+    public static JPanel createStudentDetailsSection(JPanel pagePanel) {
 
         RoundedPanel sectionPanel = new RoundedPanel(25);
         sectionPanel.setLayout(new BorderLayout());
@@ -442,7 +546,6 @@ public class WorksheetGenerator {
                 BorderFactory.createLineBorder(new Color(180, 180, 180), 1, true),
                 BorderFactory.createEmptyBorder(5, 8, 5, 8)
         ));
-        nameField.setBackground(Color.WHITE);
         nameWrapper.add(nameField);
 
         JPanel instructionsWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
@@ -462,17 +565,18 @@ public class WorksheetGenerator {
         content.add(Box.createVerticalStrut(4));
         content.add(nameWrapper);
         content.add(Box.createVerticalStrut(12));
+
         content.add(instructionsLabel);
         content.add(Box.createVerticalStrut(4));
         content.add(instructionsWrapper);
 
         sectionPanel.add(content, BorderLayout.CENTER);
 
-        // Live update runnable
+        // LIVE UPDATE (updates headerPanel ONLY)
         Runnable refresh = () -> {
             String name = nameField.getText();
-            String ins = instructionsArea.getText().replace("\n", "<br>");
-            display.setText("<html><b>Name:</b> " + name + "<br><br><b>Instructions:</b><br>" + ins + "</html>");
+            String ins = instructionsArea.getText();
+            updateHeaderText(name, ins);
             pagePanel.revalidate();
             pagePanel.repaint();
         };
@@ -482,6 +586,7 @@ public class WorksheetGenerator {
 
         return sectionPanel;
     }
+
     // ============================================================
 // PAGE SIZE SECTION (A4, Letter, Legal, A5, Custom)
 // ============================================================
@@ -839,8 +944,12 @@ public class WorksheetGenerator {
     }
 
     // Draw grid onto the provided pagePanel
+    // Draw grid into centerContentPanel (preserve header)
     private static void drawGridOnCanvas(JPanel pagePanel, WorksheetSettings settings) {
-        pagePanel.removeAll();
+        if (centerContentPanel == null) return;
+
+        // Clear center content only, keep headerPanel intact
+        centerContentPanel.removeAll();
 
         JPanel gridPanel = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
@@ -878,28 +987,39 @@ public class WorksheetGenerator {
         gridPanel.setBackground(Color.WHITE);
         gridPanel.setLayout(new BorderLayout());
 
-        pagePanel.setLayout(new BorderLayout());
-        pagePanel.add(gridPanel, BorderLayout.CENTER);
+        // Match grid size to page size
+        Dimension pageSize = pagePanel.getPreferredSize();
+        if (pageSize != null && pageSize.width > 0 && pageSize.height > 0) {
+            gridPanel.setPreferredSize(pageSize);
+        }
 
-        pagePanel.revalidate();
-        pagePanel.repaint();
+        centerContentPanel.add(gridPanel, BorderLayout.CENTER);
+
+        centerContentPanel.revalidate();
+        centerContentPanel.repaint();
     }
+
 
     // ===========================
     // FONT SECTION
     // ===========================
-    public static JPanel fontSection() {
+    public static JPanel fontSection(JPanel pagePanel, WorksheetSettings settings) {
+
         RoundedPanel outer = new RoundedPanel(25);
         outer.setOpaque(false);
         outer.setLayout(new BorderLayout());
         outer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 450));
+        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 500));
 
+        // ---------- HEADER ----------
         JPanel headerBar = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, new Color(120, 140, 170), getWidth(), getHeight(), new Color(90, 110, 140));
+                GradientPaint gp = new GradientPaint(0, 0,
+                        new Color(120, 140, 170),
+                        getWidth(), getHeight(),
+                        new Color(90, 110, 140));
                 g2.setPaint(gp);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
                 super.paintComponent(g);
@@ -919,35 +1039,43 @@ public class WorksheetGenerator {
 
         headerBar.add(title, BorderLayout.WEST);
         headerBar.add(arrow, BorderLayout.EAST);
+
         outer.add(headerBar, BorderLayout.NORTH);
 
+        // ---------- CONTENT ----------
         JPanel content = new JPanel();
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         content.setVisible(false);
 
-        java.util.function.Consumer<JComponent> fullWidth = c -> {
-            c.setAlignmentX(Component.LEFT_ALIGNMENT);
-            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
-        };
+        java.util.function.Consumer<JComponent> fullWidth =
+                c -> {
+                    c.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
+                };
 
+        // --- FONT FAMILY ---
         JLabel familyLabel = new JLabel("Font Family:");
         familyLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         fullWidth.accept(familyLabel);
 
-        JComboBox<String> familyBox = new JComboBox<>(new String[]{"SansSerif", "Serif", "Monospaced", "Dialog", "Arial"});
+        JComboBox<String> familyBox = new JComboBox<>(
+                new String[]{"SansSerif", "Serif", "Monospaced", "Dialog", "Arial"}
+        );
         familyBox.setFont(new Font("SansSerif", Font.PLAIN, 13));
         fullWidth.accept(familyBox);
 
+        // --- SIZE ---
         JLabel sizeLabel = new JLabel("Font Size:");
         sizeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         fullWidth.accept(sizeLabel);
 
-        JSpinner sizeSpinner = new JSpinner(new SpinnerNumberModel(16, 8, 72, 1));
+        JSpinner sizeSpinner = new JSpinner(new SpinnerNumberModel(24, 8, 200, 1));
         sizeSpinner.setFont(new Font("SansSerif", Font.PLAIN, 13));
         fullWidth.accept(sizeSpinner);
 
+        // --- STYLE CHECKBOXES ---
         JCheckBox bold = new JCheckBox("Bold");
         JCheckBox italic = new JCheckBox("Italic");
         JCheckBox underline = new JCheckBox("Underline");
@@ -957,72 +1085,89 @@ public class WorksheetGenerator {
             fullWidth.accept(c);
         }
 
+        // --- ALIGNMENT BUTTONS (preview + apply) ---
         JLabel alignLabel = new JLabel("Alignment:");
         alignLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         fullWidth.accept(alignLabel);
 
-        Color grad1 = new Color(150, 165, 190);
-        Color grad2 = new Color(110, 125, 155);
+        JPanel alignRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        alignRow.setOpaque(false);
 
-        java.util.function.Function<String, JButton> makeAlignBtn = (text) -> {
-            JButton btn = new JButton(text) {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g;
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    GradientPaint gp = new GradientPaint(0, 0, grad1, getWidth(), getHeight(), grad2);
-                    g2.setPaint(gp);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                    super.paintComponent(g);
-                }
-            };
-            btn.setOpaque(false);
-            btn.setContentAreaFilled(false);
-            btn.setBorderPainted(false);
-            btn.setFocusPainted(false);
-            btn.setForeground(Color.WHITE);
-            btn.setFont(new Font("SansSerif", Font.BOLD, 12));
-            btn.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
-            btn.setMaximumSize(new Dimension(200, 32));
-            return btn;
-        };
+        JButton alignLeft = styleButton(new JButton("Left"), new Color(150,165,190));
+        JButton alignCenter = styleButton(new JButton("Center"), new Color(150,165,190));
+        JButton alignRight = styleButton(new JButton("Right"), new Color(150,165,190));
+        alignLeft.setPreferredSize(new Dimension(76, 28));
+        alignCenter.setPreferredSize(new Dimension(76, 28));
+        alignRight.setPreferredSize(new Dimension(76, 28));
 
-        JButton alignLeft = makeAlignBtn.apply("Left");
-        JButton alignCenter = makeAlignBtn.apply("Center");
-        JButton alignRight = makeAlignBtn.apply("Right");
+        alignRow.add(alignLeft);
+        alignRow.add(alignCenter);
+        alignRow.add(alignRight);
+        fullWidth.accept(alignRow);
 
-        content.add(alignLeft);
-        content.add(Box.createVerticalStrut(5));
-        content.add(alignCenter);
-        content.add(Box.createVerticalStrut(5));
-        content.add(alignRight);
-        content.add(Box.createVerticalStrut(15));
+        final int[] selectedAlignment = {StyleConstants.ALIGN_LEFT}; // default
 
-        JLabel previewLabel = new JLabel("Preview Text");
-        previewLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        alignLeft.addActionListener(e -> {
+            selectedAlignment[0] = StyleConstants.ALIGN_LEFT;
+            alignLeft.setEnabled(false);
+            alignCenter.setEnabled(true);
+            alignRight.setEnabled(true);
+        });
+
+        alignCenter.addActionListener(e -> {
+            selectedAlignment[0] = StyleConstants.ALIGN_CENTER;
+            alignLeft.setEnabled(true);
+            alignCenter.setEnabled(false);
+            alignRight.setEnabled(true);
+        });
+
+        alignRight.addActionListener(e -> {
+            selectedAlignment[0] = StyleConstants.ALIGN_RIGHT;
+            alignLeft.setEnabled(true);
+            alignCenter.setEnabled(true);
+            alignRight.setEnabled(false);
+        });
+
+        // --- TEXT INPUT (the side panel input you type into) ---
+        JLabel inputLabel = new JLabel("Type text for the page (this will replace page content):");
+        inputLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(inputLabel);
+
+        JTextArea sideInput = new JTextArea(4, 24);
+        sideInput.setLineWrap(true);
+        sideInput.setWrapStyleWord(true);
+        JScrollPane sideScroll = new JScrollPane(sideInput);
+        sideScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+        fullWidth.accept(sideScroll);
+
+        // --- PREVIEW LABEL ---
+        JLabel previewLabel = new JLabel("<html>Preview: <br><i>Text will appear full-page after Apply</i></html>");
+        previewLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
         previewLabel.setOpaque(true);
         previewLabel.setBackground(new Color(245, 245, 245));
         previewLabel.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         fullWidth.accept(previewLabel);
 
-        java.util.function.BiConsumer<JLabel, Boolean> setUnderline = (lbl, active) -> {
-            Font font = lbl.getFont();
-            java.util.Map<TextAttribute, Object> map = new java.util.HashMap<>(font.getAttributes());
-            if (active) map.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
-            else map.remove(TextAttribute.UNDERLINE);
-            lbl.setFont(font.deriveFont(map));
-        };
-
+        // update preview runnable
         Runnable updatePreview = () -> {
             int size = (int) sizeSpinner.getValue();
-            String family = (String) familyBox.getSelectedItem();
-
+            String fam = (String) familyBox.getSelectedItem();
             int style = Font.PLAIN;
             if (bold.isSelected()) style |= Font.BOLD;
             if (italic.isSelected()) style |= Font.ITALIC;
 
-            Font base = new Font(family, style, size);
-            previewLabel.setFont(base);
-            setUnderline.accept(previewLabel, underline.isSelected());
+            Font pFont = new Font(fam, style, size);
+            previewLabel.setFont(pFont);
+            // underline:
+            if (underline.isSelected()) {
+                Font f = previewLabel.getFont();
+                java.util.Map<TextAttribute, Object> map = new java.util.HashMap<>(f.getAttributes());
+                map.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
+                previewLabel.setFont(f.deriveFont(map));
+            } else {
+                // remove underline by rebuilding font
+                previewLabel.setFont(pFont);
+            }
         };
 
         familyBox.addActionListener(e -> updatePreview.run());
@@ -1031,23 +1176,170 @@ public class WorksheetGenerator {
         italic.addActionListener(e -> updatePreview.run());
         underline.addActionListener(e -> updatePreview.run());
 
+        // ==========================================
+        // TEXT COLOR PICKER + APPLY + RESET
+        // ==========================================
+        JLabel colorHeader = new JLabel("Text Color:");
+        colorHeader.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        fullWidth.accept(colorHeader);
+
+        JButton chooseColorBtn = styleButton(new JButton("Choose Text Color"), new Color(150, 165, 190));
+        chooseColorBtn.setForeground(Color.WHITE);
+        chooseColorBtn.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        fullWidth.accept(chooseColorBtn);
+
+        final Color[] selectedTextColor = {Color.BLACK};
+        chooseColorBtn.addActionListener(e -> {
+            Color chosen = JColorChooser.showDialog(null, "Select Text Color", selectedTextColor[0]);
+            if (chosen != null) {
+                selectedTextColor[0] = chosen;
+                previewLabel.setForeground(chosen);
+            }
+        });
+
+        // APPLY button: creates a full-page JTextPane inside pagePanel
+        JButton applyBtn = styleButton(new JButton("Apply to Page"), new Color(186, 210, 241));
+        applyBtn.setForeground(Color.WHITE);
+        applyBtn.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        fullWidth.accept(applyBtn);
+
+        applyBtn.addActionListener(e -> {
+            // Gather font settings
+            String fam = (String) familyBox.getSelectedItem();
+            int sz = (int) sizeSpinner.getValue();
+            boolean isBold = bold.isSelected();
+            boolean isItalic = italic.isSelected();
+            boolean isUnderline = underline.isSelected();
+            Color color = selectedTextColor[0];
+            int align = selectedAlignment[0];
+            String text = sideInput.getText();
+
+            // Use pagePanel preferred size
+            Dimension pageSize = pagePanel.getPreferredSize();
+            if (pageSize == null || pageSize.width == 0 || pageSize.height == 0) {
+                pageSize = new Dimension(1000, 1400);
+            }
+
+            // Clear ONLY the center content (header stays!)
+            centerContentPanel.removeAll();
+
+            // Create editor
+            JTextPane editor = new JTextPane();
+            editor.setEditable(true);
+            editor.setBackground(Color.WHITE);
+            editor.setPreferredSize(pageSize);
+            editor.setMinimumSize(pageSize);
+            editor.setMaximumSize(pageSize);
+
+            // Apply text styling
+            StyledDocument doc = editor.getStyledDocument();
+            SimpleAttributeSet attrs = new SimpleAttributeSet();
+            StyleConstants.setFontFamily(attrs, fam);
+            StyleConstants.setFontSize(attrs, sz);
+            StyleConstants.setBold(attrs, isBold);
+            StyleConstants.setItalic(attrs, isItalic);
+            StyleConstants.setForeground(attrs, color);
+            StyleConstants.setUnderline(attrs, isUnderline);
+
+            try {
+                doc.remove(0, doc.getLength());
+                doc.insertString(0, text, attrs);
+            } catch (BadLocationException ex) {
+                ex.printStackTrace();
+            }
+
+            // Set alignment
+            SimpleAttributeSet para = new SimpleAttributeSet();
+            StyleConstants.setAlignment(para, align);
+            doc.setParagraphAttributes(0, doc.getLength(), para, false);
+
+            // Put editor in scroll pane
+            JScrollPane editorScroll = new JScrollPane(editor);
+            editorScroll.setBorder(new LineBorder(new Color(141, 157, 177), 2, true));
+            editorScroll.setPreferredSize(pageSize);
+            editorScroll.setMinimumSize(pageSize);
+            editorScroll.setMaximumSize(pageSize);
+
+            // Add editor to CENTER CONTENT ONLY
+            centerContentPanel.add(editorScroll, BorderLayout.CENTER);
+
+            // Refresh
+            centerContentPanel.revalidate();
+            centerContentPanel.repaint();
+            pagePanel.revalidate();
+            pagePanel.repaint();
+
+            JOptionPane.showMessageDialog(null, "Page updated. You can edit text directly on the page.");
+        });
+
+
+        // RESET button: restore defaults and redraw page (blank/grid)
+        JButton resetBtn = styleButton(new JButton("Reset Font & Clear Page"), new Color(186, 210, 241));
+        resetBtn.setForeground(Color.WHITE);
+        resetBtn.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+        fullWidth.accept(resetBtn);
+
+        resetBtn.addActionListener(e -> {
+            // reset UI controls to defaults
+            familyBox.setSelectedItem("SansSerif");
+            sizeSpinner.setValue(24);
+            bold.setSelected(false);
+            italic.setSelected(false);
+            underline.setSelected(false);
+            selectedTextColor[0] = Color.BLACK;
+            previewLabel.setForeground(Color.BLACK);
+            sideInput.setText("");
+
+            // Restore page content WITHOUT removing the header
+            centerContentPanel.removeAll();
+            drawGridOnCanvas(pagePanel, settings);
+
+            // Ensure header stays at the top
+            if (headerPanel.getParent() == null) {
+                pagePanel.add(headerPanel, BorderLayout.NORTH);
+            }
+
+            pagePanel.revalidate();
+            pagePanel.repaint();
+        });
+
+
+        // layout: add components into content panel
         content.add(familyLabel);
         content.add(familyBox);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(8));
         content.add(sizeLabel);
         content.add(sizeSpinner);
-        content.add(Box.createVerticalStrut(12));
+        content.add(Box.createVerticalStrut(10));
+
         content.add(bold);
         content.add(italic);
         content.add(underline);
-        content.add(Box.createVerticalStrut(15));
+        content.add(Box.createVerticalStrut(8));
+
         content.add(alignLabel);
-        content.add(Box.createVerticalStrut(5));
+        content.add(alignRow);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(inputLabel);
+        content.add(sideScroll);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(colorHeader);
+        content.add(chooseColorBtn);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(applyBtn);
+        content.add(Box.createVerticalStrut(8));
+        content.add(resetBtn);
+        content.add(Box.createVerticalStrut(12));
+
         content.add(previewLabel);
-        content.add(Box.createVerticalStrut(5));
+        content.add(Box.createVerticalStrut(6));
 
         outer.add(content, BorderLayout.CENTER);
 
+        // COLLAPSE ACTION
         headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
@@ -1064,7 +1356,7 @@ public class WorksheetGenerator {
     // ===========================
     // IMPORT CONTENT SECTION
     // ===========================
-    public static JPanel importContentSection() {
+    public static JPanel importContentSection(JPanel pagePanel) {
         RoundedPanel outer = new RoundedPanel(25);
         outer.setOpaque(false);
         outer.setLayout(new BorderLayout());
@@ -1177,10 +1469,34 @@ public class WorksheetGenerator {
 
         addLogo.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
+
             if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                previewLabel.setText("Logo Added: " + chooser.getSelectedFile().getName());
+                java.io.File f = chooser.getSelectedFile();
+                previewLabel.setText("Logo Added: " + f.getName());
+
+                try {
+                    ImageIcon icon = new ImageIcon(f.getAbsolutePath());
+
+                    // Determine header height so the logo fits
+                    int targetH = 64;
+                    if (headerPanel != null && headerPanel.getHeight() > 0) {
+                        targetH = Math.max(48, headerPanel.getHeight() - 16);
+                    }
+
+                    ImageIcon scaled = resizeToFitHeight(icon.getImage(), targetH);
+
+                    if (scaled != null && headerLogoLabel != null) {
+                        headerLogoLabel.setIcon(scaled);
+                        headerPanel.revalidate();
+                        headerPanel.repaint();
+                    }
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
             }
         });
+
 
         addImages.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
@@ -1233,284 +1549,50 @@ public class WorksheetGenerator {
         content.add(previewLabel);
         content.add(Box.createVerticalStrut(12));
         content.add(removeButton);
+// APPLY IMPORTED CONTENT TO PAGE
+        JButton applyImportBtn =
+                styleButton(new JButton("Apply to Page"), new Color(150,165,190));
+        applyImportBtn.setForeground(Color.WHITE);
+        applyImportBtn.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        fullWidth.accept(applyImportBtn);
 
-        outer.add(content, BorderLayout.CENTER);
-
-        headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
-                boolean visible = content.isVisible();
-                content.setVisible(!visible);
-                arrow.setText(visible ? "▼" : "▲");
-                outer.revalidate();
-            }
-        });
-
-        return outer;
-    }
-
-
-    // ===========================
-// FUNCTIONAL COLOUR PALETTE SECTION
-// ===========================
-    public static JPanel colorPaletteSection(JPanel pagePanel, JPanel renderPanel,
-                                             JPanel gridPanel, WorksheetSettings settings) {
-        RoundedPanel outer = new RoundedPanel(25);
-        outer.setOpaque(false);
-        outer.setLayout(new BorderLayout());
-        outer.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 450));
-
-        JPanel headerBar = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, new Color(120, 140, 170), getWidth(), getHeight(), new Color(90, 110, 140));
-                g2.setPaint(gp);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                super.paintComponent(g);
-            }
-        };
-        headerBar.setOpaque(false);
-        headerBar.setLayout(new BorderLayout());
-        headerBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-
-        JLabel title = new JLabel("Colour Palette");
-        title.setFont(new Font("SansSerif", Font.BOLD, 15));
-        title.setForeground(Color.WHITE);
-
-        JLabel arrow = new JLabel("▼");
-        arrow.setFont(new Font("SansSerif", Font.BOLD, 16));
-        arrow.setForeground(Color.WHITE);
-
-        headerBar.add(title, BorderLayout.WEST);
-        headerBar.add(arrow, BorderLayout.EAST);
-        outer.add(headerBar, BorderLayout.NORTH);
-
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        content.setVisible(false);
-
-        java.util.function.Consumer<JComponent> fullWidth = c -> {
-            c.setAlignmentX(Component.LEFT_ALIGNMENT);
-            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
-        };
-
-        // TEXT COLOR BUTTON
-        JButton textColorButton = new JButton("Choose Text Colour") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, new Color(150, 165, 190), getWidth(), getHeight(), new Color(110, 125, 155));
-                g2.setPaint(gp);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                super.paintComponent(g);
-            }
-        };
-        textColorButton.setOpaque(false);
-        textColorButton.setContentAreaFilled(false);
-        textColorButton.setBorderPainted(false);
-        textColorButton.setFocusPainted(false);
-        textColorButton.setForeground(Color.WHITE);
-        textColorButton.setFont(new Font("SansSerif", Font.BOLD, 13));
-        textColorButton.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        fullWidth.accept(textColorButton);
-
-        // TEXT COLOR PREVIEW
-        JLabel textColorPreview = new JLabel("     Text Colour Preview     ");
-        textColorPreview.setOpaque(true);
-        textColorPreview.setHorizontalAlignment(SwingConstants.CENTER);
-        textColorPreview.setBackground(settings.getTextColor());
-        textColorPreview.setForeground(settings.getTextColor().equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
-        textColorPreview.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180), 2));
-        textColorPreview.setFont(new Font("SansSerif", Font.BOLD, 12));
-        fullWidth.accept(textColorPreview);
-
-        textColorButton.addActionListener(e -> {
-            Color chosen = JColorChooser.showDialog(null, "Choose Text Colour", textColorPreview.getBackground());
-            if (chosen != null) {
-                textColorPreview.setBackground(chosen);
-                textColorPreview.setForeground(chosen.equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
-                settings.setTextColor(chosen);
-            }
-        });
-
-        // BACKGROUND COLOR BUTTON
-        JButton backgroundColorButton = new JButton("Choose Background Colour") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, new Color(150, 165, 190), getWidth(), getHeight(), new Color(110, 125, 155));
-                g2.setPaint(gp);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                super.paintComponent(g);
-            }
-        };
-        backgroundColorButton.setOpaque(false);
-        backgroundColorButton.setContentAreaFilled(false);
-        backgroundColorButton.setBorderPainted(false);
-        backgroundColorButton.setFocusPainted(false);
-        backgroundColorButton.setForeground(Color.WHITE);
-        backgroundColorButton.setFont(new Font("SansSerif", Font.BOLD, 13));
-        backgroundColorButton.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        fullWidth.accept(backgroundColorButton);
-
-        // BACKGROUND COLOR PREVIEW
-        JLabel bgColorPreview = new JLabel("   Background Preview   ");
-        bgColorPreview.setOpaque(true);
-        bgColorPreview.setHorizontalAlignment(SwingConstants.CENTER);
-        bgColorPreview.setBackground(settings.getBackgroundColor());
-        bgColorPreview.setForeground(Color.BLACK);
-        bgColorPreview.setBorder(BorderFactory.createLineBorder(new Color(180, 180, 180), 2));
-        bgColorPreview.setFont(new Font("SansSerif", Font.BOLD, 12));
-        fullWidth.accept(bgColorPreview);
-
-        backgroundColorButton.addActionListener(e -> {
-            Color chosen = JColorChooser.showDialog(null, "Choose Background Colour", bgColorPreview.getBackground());
-            if (chosen != null) {
-                bgColorPreview.setBackground(chosen);
-                settings.setBackgroundColor(chosen);
-            }
-        });
-
-        // PRESET COLOR SWATCHES
-        JLabel swatchLabel = new JLabel("Quick Colour Presets:");
-        swatchLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
-        fullWidth.accept(swatchLabel);
-
-        JPanel swatchPanel = new JPanel(new GridLayout(2, 6, 6, 6));
-        swatchPanel.setOpaque(false);
-        swatchPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
-        fullWidth.accept(swatchPanel);
-
-        Color[] swatches = {
-                Color.BLACK, Color.WHITE,
-                new Color(255, 0, 0), new Color(0, 128, 0),
-                new Color(0, 0, 255), new Color(255, 165, 0),
-                new Color(128, 0, 128), new Color(0, 139, 139),
-                new Color(255, 20, 147), new Color(139, 69, 19),
-                new Color(75, 0, 130), new Color(173, 255, 47)
-        };
-
-        for (Color c : swatches) {
-            JPanel swatchBox = new JPanel();
-            swatchBox.setOpaque(true);
-            swatchBox.setBackground(c);
-            swatchBox.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(Color.GRAY, 2),
-                    BorderFactory.createEmptyBorder(15, 15, 15, 15)
-            ));
-            swatchBox.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            swatchBox.setToolTipText("Click to apply as text color");
-
-            swatchBox.addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override public void mouseClicked(java.awt.event.MouseEvent evt) {
-                    textColorPreview.setBackground(c);
-                    textColorPreview.setForeground(c.equals(Color.BLACK) ? Color.WHITE : Color.BLACK);
-                    settings.setTextColor(c);
-                }
-
-                @Override public void mouseEntered(java.awt.event.MouseEvent evt) {
-                    swatchBox.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(Color.DARK_GRAY, 3),
-                            BorderFactory.createEmptyBorder(14, 14, 14, 14)
-                    ));
-                }
-
-                @Override public void mouseExited(java.awt.event.MouseEvent evt) {
-                    swatchBox.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(Color.GRAY, 2),
-                            BorderFactory.createEmptyBorder(15, 15, 15, 15)
-                    ));
-                }
-            });
-
-            swatchPanel.add(swatchBox);
-        }
-
-        // APPLY BUTTON
-        JButton applyButton = new JButton("✓ Apply Colours to Worksheet") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, new Color(40, 150, 80), getWidth(), getHeight(), new Color(30, 120, 60));
-                g2.setPaint(gp);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                super.paintComponent(g);
-            }
-        };
-        applyButton.setOpaque(false);
-        applyButton.setContentAreaFilled(false);
-        applyButton.setBorderPainted(false);
-        applyButton.setFocusPainted(false);
-        applyButton.setForeground(Color.WHITE);
-        applyButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-        applyButton.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        fullWidth.accept(applyButton);
-
-        applyButton.addActionListener(e -> {
-            applyColorsToWorksheet(pagePanel, renderPanel, gridPanel, settings);
-            JOptionPane.showMessageDialog(null,
-                    "✓ Colors applied successfully!\n\nText Color: " + colorToString(settings.getTextColor()) +
-                            "\nBackground Color: " + colorToString(settings.getBackgroundColor()),
-                    "Success", JOptionPane.INFORMATION_MESSAGE);
-        });
-
-        // RESET BUTTON
-        JButton resetButton = new JButton("↻ Reset to Defaults") {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, new Color(200, 80, 80), getWidth(), getHeight(), new Color(160, 60, 60));
-                g2.setPaint(gp);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                super.paintComponent(g);
-            }
-        };
-        resetButton.setOpaque(false);
-        resetButton.setContentAreaFilled(false);
-        resetButton.setBorderPainted(false);
-        resetButton.setFocusPainted(false);
-        resetButton.setForeground(Color.WHITE);
-        resetButton.setFont(new Font("SansSerif", Font.BOLD, 13));
-        resetButton.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        fullWidth.accept(resetButton);
-
-        resetButton.addActionListener(e -> {
-            textColorPreview.setBackground(Color.BLACK);
-            textColorPreview.setForeground(Color.WHITE);
-            bgColorPreview.setBackground(Color.WHITE);
-            bgColorPreview.setForeground(Color.BLACK);
-
-            settings.setTextColor(Color.BLACK);
-            settings.setBackgroundColor(Color.WHITE);
-
-            applyColorsToWorksheet(pagePanel, renderPanel, gridPanel, settings);
-            JOptionPane.showMessageDialog(null, "Colors reset to defaults (Black text, White background)");
-        });
-
-        // ADD ALL COMPONENTS TO CONTENT
-        content.add(textColorButton);
-        content.add(Box.createVerticalStrut(8));
-        content.add(textColorPreview);
-        content.add(Box.createVerticalStrut(18));
-        content.add(backgroundColorButton);
-        content.add(Box.createVerticalStrut(8));
-        content.add(bgColorPreview);
-        content.add(Box.createVerticalStrut(18));
-        content.add(swatchLabel);
-        content.add(Box.createVerticalStrut(8));
-        content.add(swatchPanel);
-        content.add(Box.createVerticalStrut(18));
-        content.add(applyButton);
+// Add button to the layout
         content.add(Box.createVerticalStrut(10));
-        content.add(resetButton);
+        content.add(applyImportBtn);
+        applyImportBtn.addActionListener(e -> {
+            // Clear page center area
+            centerContentPanel.removeAll();
+
+            // If pasted text exists → apply text block
+            String pasted = pasteArea.getText().trim();
+            if (!pasted.isEmpty()) {
+                JTextArea textBlock = new JTextArea(pasted);
+                textBlock.setLineWrap(true);
+                textBlock.setWrapStyleWord(true);
+                textBlock.setFont(new Font("SansSerif", Font.PLAIN, 18));
+                textBlock.setBorder(new LineBorder(new Color(141,157,177), 2, true));
+                textBlock.setBackground(Color.WHITE);
+
+                JScrollPane textScroll = new JScrollPane(textBlock);
+                centerContentPanel.add(textScroll, BorderLayout.CENTER);
+                refresh(pagePanel);
+                return;
+            }
+
+            // If ONLY a logo was selected, apply it at top of center area
+            if (headerLogoLabel.getIcon() != null) {
+                JLabel logoPreview = new JLabel(headerLogoLabel.getIcon());
+                logoPreview.setHorizontalAlignment(SwingConstants.CENTER);
+                centerContentPanel.add(logoPreview, BorderLayout.NORTH);
+                refresh(pagePanel);
+                return;
+            }
+
+            JOptionPane.showMessageDialog(null, "Nothing to apply yet!");
+        });
 
         outer.add(content, BorderLayout.CENTER);
 
-        // COLLAPSE/EXPAND FUNCTIONALITY
         headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
@@ -1522,95 +1604,6 @@ public class WorksheetGenerator {
         });
 
         return outer;
-    }
-
-    // ===========================
-// APPLY COLORS TO WORKSHEET
-// ===========================
-    private static void applyColorsToWorksheet(JPanel pagePanel, JPanel renderPanel,
-                                               JPanel gridPanel, WorksheetSettings settings) {
-        System.out.println("Applying colors - Text: " + colorToString(settings.getTextColor()) +
-                ", Background: " + colorToString(settings.getBackgroundColor()));
-
-        // Update renderPanel background
-        if (renderPanel != null) {
-            renderPanel.setBackground(settings.getBackgroundColor());
-            renderPanel.repaint();
-        }
-
-        // Update gridPanel if it exists
-        if (gridPanel != null) {
-            gridPanel.setBackground(settings.getBackgroundColor());
-            gridPanel.repaint();
-        }
-
-        // Update all components recursively
-        updateComponentColors(renderPanel, settings.getTextColor(), settings.getBackgroundColor());
-        updateComponentColors(pagePanel, settings.getTextColor(), settings.getBackgroundColor());
-
-        // Redraw grid with new colors
-        drawGridOnCanvas(pagePanel, settings);
-
-        // Force complete repaint
-        pagePanel.revalidate();
-        pagePanel.repaint();
-
-        if (renderPanel != null) {
-            renderPanel.revalidate();
-            renderPanel.repaint();
-        }
-    }
-
-    // Recursively update colors of all components
-    private static void updateComponentColors(Container container, Color textColor, Color bgColor) {
-        if (container == null) return;
-
-        if (container instanceof JPanel) {
-            container.setBackground(bgColor);
-        }
-
-        for (Component comp : container.getComponents()) {
-            if (comp instanceof JLabel) {
-                JLabel label = (JLabel) comp;
-                label.setForeground(textColor);
-
-                // Handle HTML text
-                String text = label.getText();
-                if (text != null && text.startsWith("<html>")) {
-                    String colorStyle = String.format("color: rgb(%d, %d, %d);",
-                            textColor.getRed(), textColor.getGreen(), textColor.getBlue());
-
-                    // Remove old style if exists
-                    if (text.contains("style=")) {
-                        text = text.replaceAll("style='[^']*'", "style='" + colorStyle + "'");
-                    } else {
-                        text = text.replace("<html>", "<html><div style='" + colorStyle + "'>");
-                        text = text.replace("</html>", "</div></html>");
-                    }
-                    label.setText(text);
-                }
-            } else if (comp instanceof JTextComponent) {
-                comp.setForeground(textColor);
-                comp.setBackground(bgColor);
-            } else if (comp instanceof Container) {
-                updateComponentColors((Container) comp, textColor, bgColor);
-            }
-
-            // Set background on all JComponents except labels
-            if (comp instanceof JComponent && !(comp instanceof JLabel)) {
-                ((JComponent) comp).setBackground(bgColor);
-            }
-        }
-    }
-
-    // Helper method to convert Color to readable string
-    private static String colorToString(Color c) {
-        if (c.equals(Color.BLACK)) return "Black";
-        if (c.equals(Color.WHITE)) return "White";
-        if (c.equals(Color.RED)) return "Red";
-        if (c.equals(Color.GREEN)) return "Green";
-        if (c.equals(Color.BLUE)) return "Blue";
-        return String.format("RGB(%d, %d, %d)", c.getRed(), c.getGreen(), c.getBlue());
     }
 
     // ===========================
@@ -1732,7 +1725,33 @@ public class WorksheetGenerator {
         content.add(mulOp);
         content.add(divOp);
         content.add(Box.createVerticalStrut(15));
+
         content.add(generateButton);
+        content.add(Box.createVerticalStrut(10));
+// RESET BUTTON (Calculations) - matches UI
+        JButton resetCalcBtn = styleButton(new JButton("Reset Calculations"), new Color(150, 165, 190));
+        resetCalcBtn.setForeground(Color.WHITE);
+        resetCalcBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        resetCalcBtn.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        resetCalcBtn.setFocusPainted(false);
+        resetCalcBtn.setContentAreaFilled(false);
+        resetCalcBtn.setOpaque(false);
+        fullWidth.accept(resetCalcBtn);
+
+        resetCalcBtn.addActionListener(e -> {
+            range20.setSelected(false);
+            range50.setSelected(false);
+            range100.setSelected(false);
+
+            problemSpinner.setValue(10);
+
+            addOp.setSelected(false);
+            subOp.setSelected(false);
+            mulOp.setSelected(false);
+            divOp.setSelected(false);
+        });
+
+        content.add(resetCalcBtn);
         content.add(Box.createVerticalStrut(10));
 
         outer.add(content, BorderLayout.CENTER);
@@ -1791,6 +1810,11 @@ public class WorksheetGenerator {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setVisible(false);
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+// fullWidth helper (match other sections)
+        java.util.function.Consumer<JComponent> fullWidth = c -> {
+            c.setAlignmentX(Component.LEFT_ALIGNMENT);
+            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
+        };
 
         JPanel grid = new JPanel(new GridLayout(0, 2, 12, 12));
         grid.setOpaque(false);
@@ -1840,6 +1864,31 @@ public class WorksheetGenerator {
         grid.add(new JLabel());
 
         content.add(grid);
+        content.add(Box.createVerticalStrut(10));
+// RESET BUTTON (Quick Fill) - matches UI
+        JButton resetQuickBtn = styleButton(new JButton("Reset Quick Fill"), new Color(150, 165, 190));
+        resetQuickBtn.setForeground(Color.WHITE);
+        resetQuickBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        resetQuickBtn.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        resetQuickBtn.setFocusPainted(false);
+        resetQuickBtn.setContentAreaFilled(false);
+        resetQuickBtn.setOpaque(false);
+
+        resetQuickBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resetQuickBtn.setMaximumSize(new Dimension(180, 40));
+        resetQuickBtn.setPreferredSize(new Dimension(180, 40));
+        resetQuickBtn.setMinimumSize(new Dimension(180, 40));
+
+        resetQuickBtn.addActionListener(e -> {
+            // no persistent state for quick-fill buttons yet —
+            // if you later add toggles, clear them here.
+            // For now clear any preview or notify user:
+            JOptionPane.showMessageDialog(null, "Quick Fill reset.");
+        });
+
+        content.add(resetQuickBtn);
+        content.add(Box.createVerticalStrut(10));
+
         content.add(Box.createVerticalStrut(10));
 
         outer.add(content, BorderLayout.CENTER);
@@ -1898,6 +1947,11 @@ public class WorksheetGenerator {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         content.setVisible(false);
+// fullWidth helper (used by other sections)
+        java.util.function.Consumer<JComponent> fullWidth = c -> {
+            c.setAlignmentX(Component.LEFT_ALIGNMENT);
+            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
+        };
 
         JPanel grid = new JPanel(new GridLayout(0, 2, 12, 12));
         grid.setOpaque(false);
@@ -1940,6 +1994,27 @@ public class WorksheetGenerator {
         grid.add(makeBtn.apply("Blank"));
 
         content.add(grid);
+        content.add(Box.createVerticalStrut(10));
+// RESET BUTTON (Templates) - matches UI
+        JButton resetTemplateBtn = styleButton(new JButton("Reset Templates"), new Color(150, 165, 190));
+        resetTemplateBtn.setForeground(Color.WHITE);
+        resetTemplateBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        resetTemplateBtn.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        resetTemplateBtn.setFocusPainted(false);
+        resetTemplateBtn.setContentAreaFilled(false);
+        resetTemplateBtn.setOpaque(false);
+
+
+        resetTemplateBtn.addActionListener(e -> {
+            // clear any template selection state here when you add it
+            JOptionPane.showMessageDialog(null, "Templates reset.");
+        });
+        resetTemplateBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resetTemplateBtn.setMaximumSize(new Dimension(180, 40));
+        resetTemplateBtn.setPreferredSize(new Dimension(180, 40));
+        resetTemplateBtn.setMinimumSize(new Dimension(180, 40));
+
+        content.add(resetTemplateBtn);
         content.add(Box.createVerticalStrut(10));
 
         outer.add(content, BorderLayout.CENTER);
@@ -2027,7 +2102,7 @@ public class WorksheetGenerator {
         icon.addMouseListener(new java.awt.event.MouseAdapter() {
             Color normal = new Color(255,255,255,0);
             Color hover = new Color(255,255,255,80);
-            @Override public void mouseEntered(java.awt.event.MouseEvent e) { icon.setOpaque(true); icon.setBackground(hover); }
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { icon.setOpaque(false); icon.setBackground(hover); }
             @Override public void mouseExited(java.awt.event.MouseEvent e) { icon.setOpaque(false); icon.setBackground(null); }
         });
         return icon;
@@ -2146,6 +2221,172 @@ public class WorksheetGenerator {
 
         scroll.revalidate();
         scroll.repaint();
+    }
+    public static void applyTextColorDeep(Container c, Color textColor) {
+        for (Component comp : c.getComponents()) {
+
+            if (comp instanceof JLabel lbl) {
+                lbl.setForeground(textColor);
+
+                // HTML support
+                String t = lbl.getText();
+                if (t != null && t.startsWith("<html>")) {
+                    lbl.setText(
+                            t.replaceAll("color: rgb\\([^)]*\\)",
+                                    "color: rgb(" + textColor.getRed() + "," + textColor.getGreen() + "," + textColor.getBlue() + ")")
+                    );
+                }
+            }
+
+            if (comp instanceof JTextField tf) tf.setForeground(textColor);
+            if (comp instanceof JTextArea ta) ta.setForeground(textColor);
+            if (comp instanceof JButton btn) btn.setForeground(textColor);
+
+            if (comp instanceof Container child) applyTextColorDeep(child, textColor);
+        }
+    }
+    public static JButton styleButton(JButton btn, Color base) {
+        JButton styled = new JButton(btn.getText()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(base);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+                super.paintComponent(g);
+            }
+        };
+
+        styled.setForeground(btn.getForeground());
+        styled.setFont(btn.getFont());
+        styled.setBorder(btn.getBorder());
+        styled.setFocusPainted(false);
+        styled.setContentAreaFilled(false);
+        styled.setOpaque(false);
+
+        return styled;
+    }
+// ============================================================
+// STEP 4 — HEADER PANEL BUILDER + LOGO RESIZER + HEADER UPDATERS
+// ============================================================
+
+    // Build the top header (logo left, name+instructions right)
+    public static JPanel buildHeaderPanel(JPanel pagePanel, WorksheetSettings settings) {
+
+        int headerHeight = 90;
+        Dimension pageSize = pagePanel.getPreferredSize();
+        if (pageSize != null && pageSize.height > 0) {
+            headerHeight = Math.max(60, Math.min(140, pageSize.height / 12));
+        }
+
+        // ---- HEADER PANEL WITH SOFT GREY BACKGROUND ----
+        RoundedPanel header = new RoundedPanel(12) {
+            @Override protected void paintComponent(Graphics g) {
+
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Soft grey background (makes it stand out from page)
+                g2.setColor(new Color(255, 255, 255));  // Slight contrast from white page
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+
+                // Soft grey border
+                g2.setColor(new Color(7, 7, 7));
+                g2.setStroke(new BasicStroke(2f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
+
+
+            }
+        };
+
+        header.setOpaque(true);
+        header.setLayout(new BorderLayout(12, 8));
+        header.setPreferredSize(new Dimension(0, headerHeight));
+        header.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+
+        // ------------------ LOGO AREA ------------------
+        headerLogoLabel = new JLabel();
+        headerLogoLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        headerLogoLabel.setVerticalAlignment(SwingConstants.CENTER);
+        headerLogoLabel.setPreferredSize(new Dimension(headerHeight - 20, headerHeight - 20));
+
+        JPanel logoWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        logoWrap.setOpaque(false);
+        logoWrap.add(headerLogoLabel);
+        header.add(logoWrap, BorderLayout.WEST);
+
+        // ------------------ TEXT AREA ------------------
+        JPanel textWrap = new JPanel();
+        textWrap.setOpaque(false);
+        textWrap.setLayout(new BoxLayout(textWrap, BoxLayout.Y_AXIS));
+
+        headerNameLabel = new JLabel("Name:");
+        headerNameLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        headerNameLabel.setForeground(Color.DARK_GRAY);
+        headerNameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        headerInstructionsLabel = new JLabel("<html><i>Instructions appear here</i></html>");
+        headerInstructionsLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        headerInstructionsLabel.setForeground(Color.DARK_GRAY);
+        headerInstructionsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        textWrap.add(headerNameLabel);
+        textWrap.add(Box.createVerticalStrut(6));
+        textWrap.add(headerInstructionsLabel);
+
+        header.add(textWrap, BorderLayout.CENTER);
+
+        return header;
+    }
+
+
+    // Resize an image to a specific target height (keeps aspect ratio)
+    public static ImageIcon resizeToFitHeight(Image img, int targetHeight) {
+        if (img == null) return null;
+        int h = img.getHeight(null);
+        int w = img.getWidth(null);
+        if (h <= 0 || w <= 0) return null;
+        double scale = (double) targetHeight / h;
+        int newW = (int)(w * scale);
+        int newH = (int)(h * scale);
+        Image scaled = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+        return new ImageIcon(scaled);
+    }
+
+    // Update header text when student details change
+    public static void updateHeaderText(String name, String instructions) {
+        if (headerNameLabel != null)
+            headerNameLabel.setText("Name: " + (name == null ? "" : name));
+
+        if (headerInstructionsLabel != null) {
+            String html = instructions == null ? "" : instructions.replace("\n", "<br>");
+            headerInstructionsLabel.setText("<html>" + html + "</html>");
+        }
+    }
+    private static void refresh(JPanel pagePanel) {
+        centerContentPanel.revalidate();
+        centerContentPanel.repaint();
+        pagePanel.revalidate();
+        pagePanel.repaint();
+    }
+    public static void applyAlignmentToEditor(int align) {
+        if (centerContentPanel.getComponentCount() == 0) return;
+
+        Component comp = centerContentPanel.getComponent(0);
+        if (!(comp instanceof JScrollPane scroll)) return;
+
+        JTextPane editor = (JTextPane) scroll.getViewport().getView();
+        StyledDocument doc = editor.getStyledDocument();
+
+        SimpleAttributeSet attrs = new SimpleAttributeSet();
+        StyleConstants.setAlignment(attrs, align);
+
+        doc.setParagraphAttributes(
+                editor.getSelectionStart(),
+                editor.getSelectionEnd() - editor.getSelectionStart(),
+                attrs,
+                false
+        );
     }
 
 }
