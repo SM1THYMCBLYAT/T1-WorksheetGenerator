@@ -7,8 +7,12 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
-import java.awt.Color;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -321,4 +325,48 @@ public class PdfService {
         int linesPerPage = calculateLinesPerPage(fontSize);
         return (int) Math.ceil((double) totalLines / linesPerPage);
     }
+    public static void exportPanelAsPDF(String path, JPanel panel) {
+        try {
+            // 1. Render JPanel to image (BufferedImage)
+            int width = panel.getWidth();
+            int height = panel.getHeight();
+
+            if (width <= 0 || height <= 0) {
+                panel.doLayout();
+                width = panel.getPreferredSize().width;
+                height = panel.getPreferredSize().height;
+            }
+
+            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2 = image.createGraphics();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(Color.WHITE);
+            g2.fillRect(0, 0, width, height);
+            panel.printAll(g2);
+            g2.dispose();
+
+            // 2. Create PDF
+            PDDocument doc = new PDDocument();
+            PDPage page = new PDPage(new PDRectangle(width, height));
+            doc.addPage(page);
+
+            // 3. Add image onto PDF page
+            PDImageXObject pdImage = LosslessFactory.createFromImage(doc, image);
+
+            PDPageContentStream cs = new PDPageContentStream(doc, page);
+            cs.drawImage(pdImage, 0, 0, width, height);
+            cs.close();
+
+            // 4. Save
+            doc.save(path);
+            doc.close();
+
+            System.out.println("PDF exported successfully to: " + path);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.err.println("Failed: " + ex.getMessage());
+        }
+    }
+
 }

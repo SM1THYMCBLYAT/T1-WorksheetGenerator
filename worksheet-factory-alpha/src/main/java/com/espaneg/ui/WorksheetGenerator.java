@@ -2,6 +2,7 @@ package com.espaneg.ui;
 
 import com.espaneg.logic.MathGen;
 import com.espaneg.model.WorksheetSettings;
+import com.espaneg.services.PdfService;
 import com.espaneg.utils.ResourceLoader;
 
 import javax.swing.*;
@@ -30,6 +31,7 @@ public class WorksheetGenerator {
     static JLabel headerLogoLabel;
     static JLabel headerNameLabel;
     static JLabel headerInstructionsLabel;
+    static JPanel pagePanel;
 
     // Orientation: true = portrait, false = landscape
     static boolean portrait = true;
@@ -171,6 +173,33 @@ public class WorksheetGenerator {
         RoundedButton moreButton = new RoundedButton("⋮");
         moreButton.setFont(new Font("SansSerif", Font.BOLD, 20));
         moreButton.setPreferredSize(new Dimension(48, 40));
+        exportButton.addActionListener(e -> {
+            try {
+                // 1. Choose save path
+                JFileChooser chooser = new JFileChooser();
+                chooser.setDialogTitle("Save Worksheet as PDF");
+                chooser.setSelectedFile(new java.io.File("worksheet.pdf"));
+
+                if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+
+                    java.io.File file = chooser.getSelectedFile();
+
+                    // 2. Convert the page panel (renderPanel) into a PDF
+                    PdfService.exportPanelAsPDF(file.getAbsolutePath(), pagePanel);
+
+                    JOptionPane.showMessageDialog(null,
+                            "PDF exported successfully!",
+                            "Export Complete",
+                            JOptionPane.INFORMATION_MESSAGE);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                        "Failed to export PDF.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
 
         topRightButtons.add(exportButton);
         topRightButtons.add(moreButton);
@@ -220,7 +249,7 @@ public class WorksheetGenerator {
         // A "page-like" panel that will hold worksheet content; it can be large and will be scrollable
         // Wrapper that RESIZES but does not draw
         // ---------- PAGE PANEL (with header + center content) ----------
-        JPanel pagePanel = new JPanel(new BorderLayout());
+        pagePanel = new JPanel(new BorderLayout());
         pagePanel.setOpaque(false);
 
 // The actual white "paper" area renderer
