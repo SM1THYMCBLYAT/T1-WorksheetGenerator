@@ -14,6 +14,8 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.awt.font.TextAttribute;
+import java.awt.print.Printable;
+import java.awt.print.PrinterJob;
 import java.util.ArrayList;
 
 public class WorksheetGenerator {
@@ -173,6 +175,9 @@ public class WorksheetGenerator {
         RoundedButton moreButton = new RoundedButton("⋮");
         moreButton.setFont(new Font("SansSerif", Font.BOLD, 20));
         moreButton.setPreferredSize(new Dimension(48, 40));
+        RoundedButton printButton = new RoundedButton("Print");
+        printButton.setPreferredSize(new Dimension(120, 40));
+
         exportButton.addActionListener(e -> {
             try {
                 // 1. Choose save path
@@ -200,8 +205,45 @@ public class WorksheetGenerator {
                         JOptionPane.ERROR_MESSAGE);
             }
         });
+        printButton.addActionListener(e -> {
+            try {
+                PrinterJob job = PrinterJob.getPrinterJob();
+
+                job.setJobName("EduCreate Worksheet");
+
+                job.setPrintable((graphics, pageFormat, pageIndex) -> {
+                    if (pageIndex > 0) return Printable.NO_SUCH_PAGE;
+
+                    Graphics2D g2 = (Graphics2D) graphics;
+
+                    // Scale worksheet to fit printable area
+                    double scaleX = pageFormat.getImageableWidth() / pagePanel.getWidth();
+                    double scaleY = pageFormat.getImageableHeight() / pagePanel.getHeight();
+                    double scale = Math.min(scaleX, scaleY);
+
+                    g2.translate(pageFormat.getImageableX(), pageFormat.getImageableY());
+                    g2.scale(scale, scale);
+
+                    pagePanel.print(g2);
+
+                    return Printable.PAGE_EXISTS;
+                });
+
+                if (job.printDialog()) {
+                    job.print();
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                        "Failed to print the worksheet.",
+                        "Print Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
 
         topRightButtons.add(exportButton);
+        topRightButtons.add(printButton);
         topRightButtons.add(moreButton);
 
         globalTopBar.add(topRightButtons, BorderLayout.EAST);
