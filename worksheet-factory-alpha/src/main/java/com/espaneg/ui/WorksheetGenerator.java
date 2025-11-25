@@ -3,6 +3,7 @@ package com.espaneg.ui;
 import com.espaneg.logic.MathGen;
 import com.espaneg.logic.QuickFill;
 import com.espaneg.model.WorksheetSettings;
+import com.espaneg.services.PdfService;
 import com.espaneg.utils.ResourceLoader;
 
 import javax.swing.*;
@@ -14,6 +15,8 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.awt.font.TextAttribute;
+import java.awt.print.Printable;
+import java.awt.print.PrinterJob;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -32,6 +35,7 @@ public class WorksheetGenerator {
     static JLabel headerLogoLabel;
     static JLabel headerNameLabel;
     static JLabel headerInstructionsLabel;
+    static JPanel pagePanel;
 
     // Orientation: true = portrait, false = landscape
     static boolean portrait = true;
@@ -172,8 +176,75 @@ public class WorksheetGenerator {
         RoundedButton moreButton = new RoundedButton("⋮");
         moreButton.setFont(new Font("SansSerif", Font.BOLD, 20));
         moreButton.setPreferredSize(new Dimension(48, 40));
+        RoundedButton printButton = new RoundedButton("Print");
+        printButton.setPreferredSize(new Dimension(120, 40));
+
+        exportButton.addActionListener(e -> {
+            try {
+                // 1. Choose save path
+                JFileChooser chooser = new JFileChooser();
+                chooser.setDialogTitle("Save Worksheet as PDF");
+                chooser.setSelectedFile(new java.io.File("worksheet.pdf"));
+
+                if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+
+                    java.io.File file = chooser.getSelectedFile();
+
+                    // 2. Convert the page panel (renderPanel) into a PDF
+                    PdfService.exportPanelAsPDF(file.getAbsolutePath(), pagePanel);
+
+                    JOptionPane.showMessageDialog(null,
+                            "PDF exported successfully!",
+                            "Export Complete",
+                            JOptionPane.INFORMATION_MESSAGE);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                        "Failed to export PDF.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        printButton.addActionListener(e -> {
+            try {
+                PrinterJob job = PrinterJob.getPrinterJob();
+
+                job.setJobName("EduCreate Worksheet");
+
+                job.setPrintable((graphics, pageFormat, pageIndex) -> {
+                    if (pageIndex > 0) return Printable.NO_SUCH_PAGE;
+
+                    Graphics2D g2 = (Graphics2D) graphics;
+
+                    // Scale worksheet to fit printable area
+                    double scaleX = pageFormat.getImageableWidth() / pagePanel.getWidth();
+                    double scaleY = pageFormat.getImageableHeight() / pagePanel.getHeight();
+                    double scale = Math.min(scaleX, scaleY);
+
+                    g2.translate(pageFormat.getImageableX(), pageFormat.getImageableY());
+                    g2.scale(scale, scale);
+
+                    pagePanel.print(g2);
+
+                    return Printable.PAGE_EXISTS;
+                });
+
+                if (job.printDialog()) {
+                    job.print();
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                        "Failed to print the worksheet.",
+                        "Print Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
 
         topRightButtons.add(exportButton);
+        topRightButtons.add(printButton);
         topRightButtons.add(moreButton);
 
         globalTopBar.add(topRightButtons, BorderLayout.EAST);
@@ -221,7 +292,7 @@ public class WorksheetGenerator {
         // A "page-like" panel that will hold worksheet content; it can be large and will be scrollable
         // Wrapper that RESIZES but does not draw
         // ---------- PAGE PANEL (with header + center content) ----------
-        JPanel pagePanel = new JPanel(new BorderLayout());
+        pagePanel = new JPanel(new BorderLayout());
         pagePanel.setOpaque(false);
 
 // The actual white "paper" area renderer
