@@ -1,6 +1,7 @@
 package com.espaneg.ui;
 
 import com.espaneg.logic.MathGen;
+import com.espaneg.logic.QuickFill;
 import com.espaneg.model.WorksheetSettings;
 import com.espaneg.services.PdfService;
 import com.espaneg.utils.ResourceLoader;
@@ -17,6 +18,7 @@ import java.awt.font.TextAttribute;
 import java.awt.print.Printable;
 import java.awt.print.PrinterJob;
 import java.util.ArrayList;
+import java.util.Map;
 
 public class WorksheetGenerator {
     // Page state
@@ -37,7 +39,6 @@ public class WorksheetGenerator {
 
     // Orientation: true = portrait, false = landscape
     static boolean portrait = true;
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(WorksheetGenerator::createAndShowUI);
     }
@@ -1917,8 +1918,8 @@ public class WorksheetGenerator {
             java.util.List<String> opsList = new ArrayList<>();
             if (addOp.isSelected()) opsList.add("+");
             if (subOp.isSelected()) opsList.add("-");
-            if (mulOp.isSelected()) opsList.add("*");
-            if (divOp.isSelected()) opsList.add("/");
+            if (mulOp.isSelected()) opsList.add("×");
+            if (divOp.isSelected()) opsList.add("÷");
 
             if (opsList.isEmpty()) {
                 JOptionPane.showMessageDialog(null, "Please select an operation");
@@ -2028,6 +2029,7 @@ public class WorksheetGenerator {
     // QUICK FILL SECTION
     // ===========================
     public static JPanel quickFillSection() {
+        QuickFill quickFill = new QuickFill(null);
         RoundedPanel outer = new RoundedPanel(25);
         outer.setOpaque(false);
         outer.setLayout(new BorderLayout());
@@ -2105,21 +2107,96 @@ public class WorksheetGenerator {
             return btn;
         };
 
-        grid.add(makeBtn.apply("A-Z"));
-        grid.add(makeBtn.apply("a-z"));
-        grid.add(makeBtn.apply("1-20"));
-        grid.add(makeBtn.apply("Sight Words"));
-        grid.add(makeBtn.apply("Colors"));
-        grid.add(makeBtn.apply("Animals"));
-        grid.add(makeBtn.apply("CVC Words"));
-        grid.add(makeBtn.apply("Shapes"));
-        grid.add(makeBtn.apply("Addition"));
-        grid.add(makeBtn.apply("Subtraction"));
-        grid.add(makeBtn.apply("Count 1-10"));
-        grid.add(new JLabel());
+
+//        grid.add(makeBtn.apply("A-Z"));
+//        grid.add(makeBtn.apply("a-z"));
+//        grid.add(makeBtn.apply("1-20"));
+//        grid.add(makeBtn.apply("Sight Words"));
+//        grid.add(makeBtn.apply("Colors"));
+//        grid.add(makeBtn.apply("Animals"));
+//        grid.add(makeBtn.apply("CVC Words"));
+//        grid.add(makeBtn.apply("Shapes"));
+//        grid.add(makeBtn.apply("Addition"));
+//        grid.add(makeBtn.apply("Subtraction"));
+//        grid.add(makeBtn.apply("Count 1-10"));
+//        grid.add(new JLabel());
 
         content.add(grid);
         content.add(Box.createVerticalStrut(10));
+
+        //map for contents
+        Map<String, QuickFill.Criteria> buttonMap = Map.ofEntries(
+                Map.entry("A-Z", QuickFill.Criteria.A_Z),
+                Map.entry("a-z", QuickFill.Criteria.a_z),
+                Map.entry("1-20", QuickFill.Criteria.NUM_1_20),
+                Map.entry("Sight Words", QuickFill.Criteria.SIGHT_WORDS),
+                Map.entry("Colors", QuickFill.Criteria.COLORS),
+                Map.entry("Animals", QuickFill.Criteria.ANIMALS),
+                Map.entry("CVC Words", QuickFill.Criteria.CVC_WORDS),
+                Map.entry("Shapes", QuickFill.Criteria.SHAPES),
+                Map.entry("Addition", QuickFill.Criteria.ADDITION),
+                Map.entry("Subtraction", QuickFill.Criteria.SUBTRACTION),
+                Map.entry("Count 1-10", QuickFill.Criteria.COUNT_1_10)
+        );
+
+
+        // ---------------- CRITERIA SELECTION ----------------
+        final QuickFill.Criteria[] selectedCriteria = new QuickFill.Criteria[1]; // holds selected criteria
+
+        for (Map.Entry<String, QuickFill.Criteria> entry : buttonMap.entrySet()) {
+            JButton btnTest = makeBtn.apply(entry.getKey());
+            QuickFill.Criteria crit = entry.getValue();
+            btnTest.addActionListener(e -> selectedCriteria[0] = crit); // select criteria, do not generate yet
+            grid.add(btnTest);
+
+            btnTest.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override public void mouseEntered(java.awt.event.MouseEvent e) { btnTest.setForeground(new Color(230, 230, 255)); }
+                @Override public void mouseExited(java.awt.event.MouseEvent e) { btnTest.setForeground(Color.WHITE); }
+                @Override public void mousePressed(java.awt.event.MouseEvent e) { btnTest.setForeground(Color.LIGHT_GRAY); }
+            });
+
+        }
+        grid.add(new JLabel());
+        content.add(grid);
+        content.add(Box.createVerticalStrut(10));
+
+        // ---------------- GENERATE BUTTON ----------------
+        JButton generateBtn = styleButton(new JButton("Generate"), new Color(150, 165, 190));
+        generateBtn.setForeground(Color.WHITE);
+        generateBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        fullWidth.accept(generateBtn);
+        generateBtn.addActionListener(e -> {
+            if (selectedCriteria[0] == null) {
+                JOptionPane.showMessageDialog(null, "Please select a criteria first.");
+                return;
+            }
+
+            if (selectedCriteria[0] == QuickFill.Criteria.SHAPES) {
+                quickFill.showShapeSelector();
+                return;
+            }
+
+            String[] items = quickFill.quickfill(selectedCriteria[0]);
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+            panel.setBackground(Color.WHITE);
+            panel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
+            for (String s : items) {
+                JLabel lbl = new JLabel(s);
+                lbl.setFont(new Font("Monospaced", Font.PLAIN, 18));
+                lbl.setBorder(BorderFactory.createEmptyBorder(2, 12, 2, 0));
+                panel.add(lbl);
+            }
+
+            centerContentPanel.removeAll();
+            centerContentPanel.add(panel, BorderLayout.CENTER);
+            centerContentPanel.revalidate();
+            centerContentPanel.repaint();
+        });
+
+        content.add(generateBtn);
+        content.add(Box.createVerticalStrut(10));
+
 // RESET BUTTON (Quick Fill) - matches UI
         JButton resetQuickBtn = styleButton(new JButton("Reset Quick Fill"), new Color(150, 165, 190));
         resetQuickBtn.setForeground(Color.WHITE);
@@ -2138,7 +2215,10 @@ public class WorksheetGenerator {
             // no persistent state for quick-fill buttons yet —
             // if you later add toggles, clear them here.
             // For now clear any preview or notify user:
-            JOptionPane.showMessageDialog(null, "Quick Fill reset.");
+            centerContentPanel.removeAll();
+            centerContentPanel.repaint();
+            centerContentPanel.revalidate();
+
         });
 
         content.add(resetQuickBtn);
