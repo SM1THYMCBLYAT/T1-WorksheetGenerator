@@ -401,21 +401,74 @@ public class WorksheetGenerator {
         iconGroup.add(rightArrowBtn);
         iconGroup.add(redoBtn);
 // ---------------------------------------------------------
-// TOOLBAR ACTIONS
+// TOOLBAR ACTIONS - UNIVERSAL UNDO/REDO
 // ---------------------------------------------------------
 
-        final String[] lastContent = {""};
-        final String[] redoContent = {""};
+// Store snapshots of the entire centerContentPanel
+        final java.util.Stack<Component> undoStack = new java.util.Stack<>();
+        final java.util.Stack<Component> redoStack = new java.util.Stack<>();
+
+// Helper method to clone a component
+        java.util.function.Function<Component, Component> cloneComponent = (comp) -> {
+            if (comp instanceof JScrollPane scroll) {
+                Component view = scroll.getViewport().getView();
+                if (view instanceof JTextPane pane) {
+                    JTextPane newPane = new JTextPane();
+                    newPane.setDocument(pane.getStyledDocument());
+                    newPane.setText(pane.getText());
+                    newPane.setEditable(pane.isEditable());
+                    newPane.setBackground(pane.getBackground());
+                    newPane.setForeground(pane.getForeground());
+                    newPane.setFont(pane.getFont());
+
+                    JScrollPane newScroll = new JScrollPane(newPane);
+                    newScroll.setBorder(scroll.getBorder());
+                    newScroll.setPreferredSize(scroll.getPreferredSize());
+                    return newScroll;
+                }
+            }
+            return null;
+        };
+
+// Save current state
+        Runnable saveState = () -> {
+            if (centerContentPanel.getComponentCount() > 0) {
+                Component current = centerContentPanel.getComponent(0);
+                Component clone = cloneComponent.apply(current);
+                if (clone != null) {
+                    undoStack.push(clone);
+                    redoStack.clear();
+                    System.out.println("✓ State saved. Undo stack: " + undoStack.size());
+                }
+            }
+        };
 
 // UNDO
         undoBtn.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
-                if (centerContentPanel.getComponentCount() > 0 &&
-                        centerContentPanel.getComponent(0) instanceof JScrollPane scroll) {
+                System.out.println("UNDO clicked. Stack size: " + undoStack.size());
 
-                    JTextPane editor = (JTextPane) scroll.getViewport().getView();
-                    redoContent[0] = editor.getText();
-                    editor.setText(lastContent[0]);
+                if (!undoStack.isEmpty()) {
+                    // Save current state to redo
+                    if (centerContentPanel.getComponentCount() > 0) {
+                        Component current = centerContentPanel.getComponent(0);
+                        Component clone = cloneComponent.apply(current);
+                        if (clone != null) {
+                            redoStack.push(clone);
+                        }
+                    }
+
+                    // Restore previous state
+                    Component previous = undoStack.pop();
+                    centerContentPanel.removeAll();
+                    centerContentPanel.add(previous, BorderLayout.CENTER);
+                    centerContentPanel.revalidate();
+                    centerContentPanel.repaint();
+
+                    System.out.println("✓ UNDO successful");
+                } else {
+                    System.out.println("Nothing to undo");
+                    JOptionPane.showMessageDialog(null, "Nothing to undo!");
                 }
             }
         });
@@ -423,25 +476,42 @@ public class WorksheetGenerator {
 // REDO
         redoBtn.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
-                if (centerContentPanel.getComponentCount() > 0 &&
-                        centerContentPanel.getComponent(0) instanceof JScrollPane scroll) {
+                System.out.println("REDO clicked. Stack size: " + redoStack.size());
 
-                    JTextPane editor = (JTextPane) scroll.getViewport().getView();
-                    editor.setText(redoContent[0]);
+                if (!redoStack.isEmpty()) {
+                    // Save current state to undo
+                    if (centerContentPanel.getComponentCount() > 0) {
+                        Component current = centerContentPanel.getComponent(0);
+                        Component clone = cloneComponent.apply(current);
+                        if (clone != null) {
+                            undoStack.push(clone);
+                        }
+                    }
+
+                    // Restore next state
+                    Component next = redoStack.pop();
+                    centerContentPanel.removeAll();
+                    centerContentPanel.add(next, BorderLayout.CENTER);
+                    centerContentPanel.revalidate();
+                    centerContentPanel.repaint();
+
+                    System.out.println("✓ REDO successful");
+                } else {
+                    System.out.println("Nothing to redo");
+                    JOptionPane.showMessageDialog(null, "Nothing to redo!");
                 }
             }
         });
 
-// Save editor text whenever new content is added
+// Auto-save state when content changes
         centerContentPanel.addContainerListener(new java.awt.event.ContainerAdapter() {
             @Override public void componentAdded(java.awt.event.ContainerEvent e) {
-                if (e.getChild() instanceof JScrollPane scroll) {
-                    JTextPane editor = (JTextPane) scroll.getViewport().getView();
-                    lastContent[0] = editor.getText();
-                }
+                // Wait a bit then save state
+                javax.swing.Timer timer = new javax.swing.Timer(500, ev -> saveState.run());
+                timer.setRepeats(false);
+                timer.start();
             }
         });
-
 // ALIGN LEFT
         alignLeftBtn.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) {
@@ -486,19 +556,70 @@ public class WorksheetGenerator {
 
         toolbar.add(iconGroup, BorderLayout.WEST);
 
-        // Right button group
         JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         rightButtons.setOpaque(false);
         RoundedButton autosaveBtn = new RoundedButton("AutoSave");
-        RoundedButton saveBtn = new RoundedButton(" Zoom ");
+        RoundedButton zoomBtn = new RoundedButton(" Zoom ");
         autosaveBtn.setPreferredSize(new Dimension(140, 36));
-        saveBtn.setPreferredSize(new Dimension(100, 36));
+        zoomBtn.setPreferredSize(new Dimension(100, 36));
+
+// ZOOM FUNCTIONALITY - Only zooms the canvas
+        zoomBtn.addActionListener(e -> {
+            String[] zoomOptions = {"50%", "75%", "100%", "125%", "150%", "200%", "250%", "300%"};
+            String selected = (String) JOptionPane.showInputDialog(
+                    frame,
+                    "Select zoom level for the canvas:",
+                    "Zoom Canvas",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    zoomOptions,
+                    "100%"
+            );
+
+            if (selected != null && renderPanel != null) {
+                try {
+                    // Parse zoom percentage
+                    double zoomFactor = Double.parseDouble(selected.replace("%", "")) / 100.0;
+
+                    // Get base size (A4 default)
+                    int baseWidth = 1000;
+                    int baseHeight = 1400;
+
+                    // Calculate new size based on zoom
+                    int newWidth = (int)(baseWidth * zoomFactor);
+                    int newHeight = (int)(baseHeight * zoomFactor);
+
+                    // Apply zoom to renderPanel and pagePanel ONLY
+                    Dimension newSize = new Dimension(newWidth, newHeight);
+                    renderPanel.setPreferredSize(newSize);
+                    pagePanel.setPreferredSize(newSize);
+
+                    // Force layout update
+                    renderPanel.revalidate();
+                    renderPanel.repaint();
+                    pagePanel.revalidate();
+                    pagePanel.repaint();
+                    canvasScroll.revalidate();
+
+                    JOptionPane.showMessageDialog(frame,
+                            "Canvas zoomed to " + selected,
+                            "Zoom Applied",
+                            JOptionPane.INFORMATION_MESSAGE);
+
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(frame,
+                            "Invalid zoom level",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
         rightButtons.add(autosaveBtn);
-        rightButtons.add(saveBtn);
+        rightButtons.add(zoomBtn);
         toolbar.add(rightButtons, BorderLayout.EAST);
 
         bottomPanel.add(toolbar, BorderLayout.CENTER);
-
         // Chat launcher sits to the right of the toolbar
         JLabel chatLauncher = new JLabel(ResourceLoader.loadIcon("CHAT.png"));
         chatLauncher.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
