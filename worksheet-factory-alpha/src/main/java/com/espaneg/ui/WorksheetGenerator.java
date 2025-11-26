@@ -18,6 +18,7 @@ import java.awt.font.TextAttribute;
 import java.awt.print.Printable;
 import java.awt.print.PrinterJob;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 public class WorksheetGenerator {
@@ -36,6 +37,16 @@ public class WorksheetGenerator {
     static JLabel headerNameLabel;
     static JLabel headerInstructionsLabel;
     static JPanel pagePanel;
+    // ===== Font Section Global References =====
+    static JComboBox<String> fontSectionComboFamily;
+    static JSpinner fontSectionSizeSpinner;
+    static JCheckBox fontSectionBold;
+    static JCheckBox fontSectionItalic;
+    static JCheckBox fontSectionUnderline;
+    static Color selectedFontColor = Color.BLACK;
+    // Alignment (Left / Center / Right)
+    static int selectedAlignment = StyleConstants.ALIGN_LEFT;
+    static JTextArea fontSideInput;
 
     // Orientation: true = portrait, false = landscape
     static boolean portrait = true;
@@ -1279,6 +1290,16 @@ public class WorksheetGenerator {
             c.setFont(new Font("SansSerif", Font.PLAIN, 12));
             fullWidth.accept(c);
         }
+        // =========================================
+// SAVE FONT CONTROLS GLOBALLY (STEP 2)
+// =========================================
+        fontSectionComboFamily = familyBox;
+        fontSectionSizeSpinner = sizeSpinner;
+        fontSectionBold = bold;
+        fontSectionItalic = italic;
+        fontSectionUnderline = underline;
+        selectedFontColor = Color.BLACK;
+
 
         // --- ALIGNMENT BUTTONS (preview + apply) ---
         JLabel alignLabel = new JLabel("Alignment:");
@@ -1300,35 +1321,41 @@ public class WorksheetGenerator {
         alignRow.add(alignRight);
         fullWidth.accept(alignRow);
 
-        final int[] selectedAlignment = {StyleConstants.ALIGN_LEFT}; // default
-
         alignLeft.addActionListener(e -> {
-            selectedAlignment[0] = StyleConstants.ALIGN_LEFT;
+            selectedAlignment = StyleConstants.ALIGN_LEFT;
             alignLeft.setEnabled(false);
             alignCenter.setEnabled(true);
             alignRight.setEnabled(true);
+            applyAlignmentToEditor(selectedAlignment); // <--- ensure current page updates
         });
+
 
         alignCenter.addActionListener(e -> {
-            selectedAlignment[0] = StyleConstants.ALIGN_CENTER;
-            alignLeft.setEnabled(true);
-            alignCenter.setEnabled(false);
+            selectedAlignment = StyleConstants.ALIGN_CENTER;
+            alignLeft.setEnabled(false);
+            alignCenter.setEnabled(true);
             alignRight.setEnabled(true);
+            applyAlignmentToEditor(selectedAlignment); // <--- ensure current page updates
         });
 
+
         alignRight.addActionListener(e -> {
-            selectedAlignment[0] = StyleConstants.ALIGN_RIGHT;
-            alignLeft.setEnabled(true);
+            selectedAlignment = StyleConstants.ALIGN_RIGHT;
+            alignLeft.setEnabled(false);
             alignCenter.setEnabled(true);
-            alignRight.setEnabled(false);
+            alignRight.setEnabled(true);
+            applyAlignmentToEditor(selectedAlignment); // <--- ensure current page updates
         });
+
+
 
         // --- TEXT INPUT (the side panel input you type into) ---
         JLabel inputLabel = new JLabel("Type text for the page (this will replace page content):");
         inputLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
         fullWidth.accept(inputLabel);
 
-        JTextArea sideInput = new JTextArea(4, 24);
+        fontSideInput = new JTextArea(4, 24);
+        JTextArea sideInput = fontSideInput; // keep your original name usable
         sideInput.setLineWrap(true);
         sideInput.setWrapStyleWord(true);
         JScrollPane sideScroll = new JScrollPane(sideInput);
@@ -1389,6 +1416,7 @@ public class WorksheetGenerator {
             if (chosen != null) {
                 selectedTextColor[0] = chosen;
                 previewLabel.setForeground(chosen);
+                selectedFontColor = chosen;
             }
         });
 
@@ -1406,7 +1434,8 @@ public class WorksheetGenerator {
             boolean isItalic = italic.isSelected();
             boolean isUnderline = underline.isSelected();
             Color color = selectedTextColor[0];
-            int align = selectedAlignment[0];
+            int align = selectedAlignment;
+
             String text = sideInput.getText();
 
             // Use pagePanel preferred size
@@ -1946,12 +1975,46 @@ public class WorksheetGenerator {
                 java.util.List<String> problems =
                         MathGen.generate(op, selectedRange, count);
 
+                Font f = getSelectedFont();
+
                 for (String p : problems) {
                     JLabel line = new JLabel(p);
-                    line.setFont(new Font("Monospaced", Font.PLAIN, 18));
+
+                    line.setFont(f);
+                    line.setForeground(selectedFontColor);
+
+                    // underline support
+                    if (fontSectionUnderline.isSelected()) {
+                        Map<TextAttribute, Object> map = new HashMap<>(f.getAttributes());
+                        map.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
+                        line.setFont(f.deriveFont(map));
+                    }
+
+                    // STEP-5: Alignment support
+                    switch (selectedAlignment) {
+
+                        case StyleConstants.ALIGN_CENTER ->
+                                line.setHorizontalAlignment(SwingConstants.CENTER);
+                        case StyleConstants.ALIGN_RIGHT ->
+                                line.setHorizontalAlignment(SwingConstants.RIGHT);
+                        default ->
+                                line.setHorizontalAlignment(SwingConstants.LEFT);
+                    }
+
+// STEP 3 — REQUIRED FOR ALIGNMENT TO ACTUALLY SHOW
+                    line.setAlignmentX(
+                            selectedAlignment == StyleConstants.ALIGN_CENTER ? Component.CENTER_ALIGNMENT :
+                                    selectedAlignment == StyleConstants.ALIGN_RIGHT ? Component.RIGHT_ALIGNMENT :
+                                            Component.LEFT_ALIGNMENT
+                    );
+
+                    line.setMaximumSize(new Dimension(Integer.MAX_VALUE, line.getPreferredSize().height));
+
                     line.setBorder(BorderFactory.createEmptyBorder(2, 12, 2, 0));
                     mathPanel.add(line);
                 }
+
+
 
                 mathPanel.add(Box.createVerticalStrut(20));
             }
@@ -1959,6 +2022,22 @@ public class WorksheetGenerator {
             // ===============================
             // APPLY TO THE PAGE (NOT SIDEBAR)
             // ===============================
+// Build text version for Font Section input box
+            StringBuilder sb = new StringBuilder();
+
+            for (String op : opsList) {
+                sb.append(op).append(" Problems\n");
+                java.util.List<String> problems = MathGen.generate(op, selectedRange, count);
+                for (String p : problems) {
+                    sb.append(p).append("\n");
+                }
+                sb.append("\n");
+            }
+
+// Push into the font text box
+            if (fontSideInput != null) {
+                fontSideInput.setText(sb.toString());
+            }
 
             centerContentPanel.removeAll();           // Clear old content
             centerContentPanel.add(mathPanel, BorderLayout.CENTER);
@@ -2026,8 +2105,8 @@ public class WorksheetGenerator {
     }
 
     // ===========================
-    // QUICK FILL SECTION
-    // ===========================
+// QUICK FILL SECTION
+// ===========================
     public static JPanel quickFillSection() {
         QuickFill quickFill = new QuickFill(null);
         RoundedPanel outer = new RoundedPanel(25);
@@ -2037,7 +2116,8 @@ public class WorksheetGenerator {
         outer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 420));
 
         JPanel headerBar = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 GradientPaint gp = new GradientPaint(0, 0, new Color(120, 140, 170), getWidth(), getHeight(), new Color(90, 110, 140));
@@ -2067,12 +2147,14 @@ public class WorksheetGenerator {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setVisible(false);
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-// fullWidth helper (match other sections)
+
+        // fullWidth helper (match other sections)
         java.util.function.Consumer<JComponent> fullWidth = c -> {
             c.setAlignmentX(Component.LEFT_ALIGNMENT);
             c.setMaximumSize(new Dimension(Integer.MAX_VALUE, c.getPreferredSize().height));
         };
 
+        // Grid for buttons
         JPanel grid = new JPanel(new GridLayout(0, 2, 12, 12));
         grid.setOpaque(false);
 
@@ -2081,7 +2163,8 @@ public class WorksheetGenerator {
 
         java.util.function.Function<String, JButton> makeBtn = (text) -> {
             JButton btn = new JButton(text) {
-                @Override protected void paintComponent(Graphics g) {
+                @Override
+                protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g;
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                     GradientPaint gp = new GradientPaint(0, 0, grad1, getWidth(), getHeight(), grad2);
@@ -2107,24 +2190,7 @@ public class WorksheetGenerator {
             return btn;
         };
 
-
-//        grid.add(makeBtn.apply("A-Z"));
-//        grid.add(makeBtn.apply("a-z"));
-//        grid.add(makeBtn.apply("1-20"));
-//        grid.add(makeBtn.apply("Sight Words"));
-//        grid.add(makeBtn.apply("Colors"));
-//        grid.add(makeBtn.apply("Animals"));
-//        grid.add(makeBtn.apply("CVC Words"));
-//        grid.add(makeBtn.apply("Shapes"));
-//        grid.add(makeBtn.apply("Addition"));
-//        grid.add(makeBtn.apply("Subtraction"));
-//        grid.add(makeBtn.apply("Count 1-10"));
-//        grid.add(new JLabel());
-
-        content.add(grid);
-        content.add(Box.createVerticalStrut(10));
-
-        //map for contents
+        // Map QuickFill criteria to buttons
         Map<String, QuickFill.Criteria> buttonMap = Map.ofEntries(
                 Map.entry("A-Z", QuickFill.Criteria.A_Z),
                 Map.entry("a-z", QuickFill.Criteria.a_z),
@@ -2140,32 +2206,31 @@ public class WorksheetGenerator {
         );
 
 
-        // ---------------- CRITERIA SELECTION ----------------
-        final QuickFill.Criteria[] selectedCriteria = new QuickFill.Criteria[1]; // holds selected criteria
+        // Selection holder
+        final QuickFill.Criteria[] selectedCriteria = new QuickFill.Criteria[1];
 
+        // Create buttons + listeners
         for (Map.Entry<String, QuickFill.Criteria> entry : buttonMap.entrySet()) {
             JButton btnTest = makeBtn.apply(entry.getKey());
             QuickFill.Criteria crit = entry.getValue();
-            btnTest.addActionListener(e -> selectedCriteria[0] = crit); // select criteria, do not generate yet
+
+            btnTest.addActionListener(e -> selectedCriteria[0] = crit);
+
             grid.add(btnTest);
-
-            btnTest.addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override public void mouseEntered(java.awt.event.MouseEvent e) { btnTest.setForeground(new Color(230, 230, 255)); }
-                @Override public void mouseExited(java.awt.event.MouseEvent e) { btnTest.setForeground(Color.WHITE); }
-                @Override public void mousePressed(java.awt.event.MouseEvent e) { btnTest.setForeground(Color.LIGHT_GRAY); }
-            });
-
         }
+
         grid.add(new JLabel());
         content.add(grid);
         content.add(Box.createVerticalStrut(10));
 
-        // ---------------- GENERATE BUTTON ----------------
+        // GENERATE BUTTON
         JButton generateBtn = styleButton(new JButton("Generate"), new Color(150, 165, 190));
         generateBtn.setForeground(Color.WHITE);
         generateBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
         fullWidth.accept(generateBtn);
+
         generateBtn.addActionListener(e -> {
+
             if (selectedCriteria[0] == null) {
                 JOptionPane.showMessageDialog(null, "Please select a criteria first.");
                 return;
@@ -2177,15 +2242,53 @@ public class WorksheetGenerator {
             }
 
             String[] items = quickFill.quickfill(selectedCriteria[0]);
+
             JPanel panel = new JPanel();
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
             panel.setBackground(Color.WHITE);
             panel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
+
             for (String s : items) {
+                Font f = getSelectedFont();
                 JLabel lbl = new JLabel(s);
-                lbl.setFont(new Font("Monospaced", Font.PLAIN, 18));
-                lbl.setBorder(BorderFactory.createEmptyBorder(2, 12, 2, 0));
+                lbl.setFont(f);
+                lbl.setForeground(selectedFontColor);
+
+                // underline
+                if (fontSectionUnderline.isSelected()) {
+                    Map<TextAttribute, Object> map = new HashMap<>(f.getAttributes());
+                    map.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
+                    lbl.setFont(f.deriveFont(map));
+                }
+
+                // STEP-5: Alignment
+                switch (selectedAlignment) {
+                    case StyleConstants.ALIGN_CENTER ->
+                            lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                    case StyleConstants.ALIGN_RIGHT ->
+                            lbl.setHorizontalAlignment(SwingConstants.RIGHT);
+                    default ->
+                            lbl.setHorizontalAlignment(SwingConstants.LEFT);
+                }
+
+                // STEP 3 — REQUIRED FOR ALIGNMENT TO ACTUALLY DISPLAY IN BOXLAYOUT
+                lbl.setAlignmentX(
+                        selectedAlignment == StyleConstants.ALIGN_CENTER ? Component.CENTER_ALIGNMENT :
+                                selectedAlignment == StyleConstants.ALIGN_RIGHT ? Component.RIGHT_ALIGNMENT :
+                                        Component.LEFT_ALIGNMENT
+                );
+
+                lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, lbl.getPreferredSize().height));
+
                 panel.add(lbl);
+            }
+// Build text version for Font Section input box
+            StringBuilder sb = new StringBuilder();
+            for (String s : items) sb.append(s).append("\n");
+
+// Push into the Font section text box
+            if (fontSideInput != null) {
+                fontSideInput.setText(sb.toString());
             }
 
             centerContentPanel.removeAll();
@@ -2197,7 +2300,7 @@ public class WorksheetGenerator {
         content.add(generateBtn);
         content.add(Box.createVerticalStrut(10));
 
-// RESET BUTTON (Quick Fill) - matches UI
+        // RESET BUTTON
         JButton resetQuickBtn = styleButton(new JButton("Reset Quick Fill"), new Color(150, 165, 190));
         resetQuickBtn.setForeground(Color.WHITE);
         resetQuickBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
@@ -2208,29 +2311,23 @@ public class WorksheetGenerator {
 
         resetQuickBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         resetQuickBtn.setMaximumSize(new Dimension(180, 40));
-        resetQuickBtn.setPreferredSize(new Dimension(180, 40));
-        resetQuickBtn.setMinimumSize(new Dimension(180, 40));
 
         resetQuickBtn.addActionListener(e -> {
-            // no persistent state for quick-fill buttons yet —
-            // if you later add toggles, clear them here.
-            // For now clear any preview or notify user:
             centerContentPanel.removeAll();
             centerContentPanel.repaint();
             centerContentPanel.revalidate();
-
         });
 
         content.add(resetQuickBtn);
         content.add(Box.createVerticalStrut(10));
-
         content.add(Box.createVerticalStrut(10));
 
         outer.add(content, BorderLayout.CENTER);
 
         headerBar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         headerBar.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
                 boolean visible = content.isVisible();
                 content.setVisible(!visible);
                 arrow.setText(visible ? "▼" : "▲");
@@ -2705,23 +2802,122 @@ public class WorksheetGenerator {
         pagePanel.repaint();
     }
     public static void applyAlignmentToEditor(int align) {
-        if (centerContentPanel.getComponentCount() == 0) return;
+        // store as current selection
+        selectedAlignment = align;
+
+        if (centerContentPanel == null || centerContentPanel.getComponentCount() == 0) return;
 
         Component comp = centerContentPanel.getComponent(0);
-        if (!(comp instanceof JScrollPane scroll)) return;
 
-        JTextPane editor = (JTextPane) scroll.getViewport().getView();
-        StyledDocument doc = editor.getStyledDocument();
+        // If center content is a JScrollPane (typical for editor)
+        if (comp instanceof JScrollPane scroll) {
+            Component view = scroll.getViewport().getView();
 
-        SimpleAttributeSet attrs = new SimpleAttributeSet();
-        StyleConstants.setAlignment(attrs, align);
+            // If it's a JTextPane -> apply paragraph attributes to entire doc
+            if (view instanceof JTextPane editor) {
+                StyledDocument doc = editor.getStyledDocument();
+                SimpleAttributeSet attrs = new SimpleAttributeSet();
+                StyleConstants.setAlignment(attrs, align);
+                doc.setParagraphAttributes(0, doc.getLength(), attrs, false);
+                editor.revalidate();
+                editor.repaint();
+                return;
+            }
 
-        doc.setParagraphAttributes(
-                editor.getSelectionStart(),
-                editor.getSelectionEnd() - editor.getSelectionStart(),
-                attrs,
-                false
-        );
+            // If it's a JTextArea -> wrap behavior is limited; we'll try to center by replacing with a JTextPane
+            if (view instanceof JTextArea ta) {
+                String txt = ta.getText();
+                JTextPane newPane = new JTextPane();
+                newPane.setText(txt);
+                newPane.setEditable(ta.isEditable());
+                newPane.setBackground(ta.getBackground());
+                newPane.setFont(ta.getFont());
+                StyledDocument doc = newPane.getStyledDocument();
+                SimpleAttributeSet attrs = new SimpleAttributeSet();
+                StyleConstants.setAlignment(attrs, align);
+                doc.setParagraphAttributes(0, doc.getLength(), attrs, false);
+                scroll.setViewportView(newPane);
+                centerContentPanel.revalidate();
+                centerContentPanel.repaint();
+                return;
+            }
+        }
+
+        // If center content is a JPanel with multiple components (mathPanel / quickFill panel)
+        if (comp instanceof JPanel panel) {
+            for (Component child : panel.getComponents()) {
+                // LABELS: adjust horizontal alignment and alignmentX for box layout
+                if (child instanceof JLabel lbl) {
+                    switch (align) {
+                        case StyleConstants.ALIGN_CENTER -> {
+                            lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                            lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+                        }
+                        case StyleConstants.ALIGN_RIGHT -> {
+                            lbl.setHorizontalAlignment(SwingConstants.RIGHT);
+                            lbl.setAlignmentX(Component.RIGHT_ALIGNMENT);
+                        }
+                        default -> {
+                            lbl.setHorizontalAlignment(SwingConstants.LEFT);
+                            lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+                        }
+                    }
+                    // make sure label takes full width so horizontalAlignment renders visually
+                    lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, lbl.getPreferredSize().height));
+                    lbl.revalidate();
+                }
+
+                // If child is a JScrollPane -> try to update the inner editor/textpane
+                if (child instanceof JScrollPane sp) {
+                    Component v = sp.getViewport().getView();
+                    if (v instanceof JTextPane ep) {
+                        StyledDocument d = ep.getStyledDocument();
+                        SimpleAttributeSet attrs = new SimpleAttributeSet();
+                        StyleConstants.setAlignment(attrs, align);
+                        d.setParagraphAttributes(0, d.getLength(), attrs, false);
+                        ep.revalidate();
+                    } else if (v instanceof JTextArea ta) {
+                        // convert to JTextPane to enable alignment
+                        String txt = ta.getText();
+                        JTextPane np = new JTextPane();
+                        np.setText(txt);
+                        np.setEditable(ta.isEditable());
+                        StyledDocument d = np.getStyledDocument();
+                        SimpleAttributeSet attrs = new SimpleAttributeSet();
+                        StyleConstants.setAlignment(attrs, align);
+                        d.setParagraphAttributes(0, d.getLength(), attrs, false);
+                        sp.setViewportView(np);
+                        sp.revalidate();
+                    }
+                }
+            }
+
+            panel.revalidate();
+            panel.repaint();
+        }
+    }
+
+    public static Font getSelectedFont() {
+        String fam = "SansSerif";
+        int size = 24;
+        int style = Font.PLAIN;
+
+        try {
+            fam = ((String) ((JComboBox) fontSectionComboFamily).getSelectedItem());
+        } catch (Exception ignored) {}
+
+        try {
+            size = (Integer) fontSectionSizeSpinner.getValue();
+        } catch (Exception ignored) {}
+
+        try {
+            boolean bold = fontSectionBold.isSelected();
+            boolean italic = fontSectionItalic.isSelected();
+            if (bold) style |= Font.BOLD;
+            if (italic) style |= Font.ITALIC;
+        } catch (Exception ignored) {}
+
+        return new Font(fam, style, size);
     }
 
 }
