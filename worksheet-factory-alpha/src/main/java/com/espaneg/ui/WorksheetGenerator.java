@@ -47,6 +47,10 @@ public class WorksheetGenerator {
     // Alignment (Left / Center / Right)
     static int selectedAlignment = StyleConstants.ALIGN_LEFT;
     static JTextArea fontSideInput;
+    static JPanel pageContainer;
+    static java.util.List<JPanel> pagePanels = new ArrayList<>();
+    static int activePageIndex = 0;
+    static WorksheetSettings settings = new WorksheetSettings("Default", "", 20);
 
     // Orientation: true = portrait, false = landscape
     static boolean portrait = true;
@@ -181,6 +185,12 @@ public class WorksheetGenerator {
         // Top-right buttons (export & more)
         JPanel topRightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         topRightButtons.setOpaque(false);
+        RoundedButton addPageBtn = new RoundedButton("New Page");
+        addPageBtn.setPreferredSize(new Dimension(120, 40));
+
+        addPageBtn.addActionListener(e -> addNewPage());
+
+        topRightButtons.add(addPageBtn);
 
         RoundedButton exportButton = new RoundedButton("Export & Share");
         exportButton.setPreferredSize(new Dimension(160, 40));
@@ -192,51 +202,54 @@ public class WorksheetGenerator {
 
         exportButton.addActionListener(e -> {
             try {
-                // 1. Choose save path
                 JFileChooser chooser = new JFileChooser();
                 chooser.setDialogTitle("Save Worksheet as PDF");
                 chooser.setSelectedFile(new java.io.File("worksheet.pdf"));
 
                 if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
 
-                    java.io.File file = chooser.getSelectedFile();
+                    String outPath = chooser.getSelectedFile().getAbsolutePath();
+                    PdfService.startPDF(outPath);
 
-                    // 2. Convert the page panel (renderPanel) into a PDF
-                    PdfService.exportPanelAsPDF(file.getAbsolutePath(), pagePanel);
+                    for (JPanel page : pagePanels) {
+                        PdfService.exportPanelPage(page);
+                    }
+
+                    PdfService.finishPDF(outPath);
 
                     JOptionPane.showMessageDialog(null,
                             "PDF exported successfully!",
                             "Export Complete",
                             JOptionPane.INFORMATION_MESSAGE);
                 }
+
             } catch (Exception ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(null,
-                        "Failed to export PDF.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
             }
         });
+
         printButton.addActionListener(e -> {
             try {
                 PrinterJob job = PrinterJob.getPrinterJob();
-
                 job.setJobName("EduCreate Worksheet");
 
                 job.setPrintable((graphics, pageFormat, pageIndex) -> {
-                    if (pageIndex > 0) return Printable.NO_SUCH_PAGE;
 
+                    // Stop after last page
+                    if (pageIndex >= pagePanels.size())
+                        return Printable.NO_SUCH_PAGE;
+
+                    JPanel page = pagePanels.get(pageIndex);
                     Graphics2D g2 = (Graphics2D) graphics;
 
-                    // Scale worksheet to fit printable area
-                    double scaleX = pageFormat.getImageableWidth() / pagePanel.getWidth();
-                    double scaleY = pageFormat.getImageableHeight() / pagePanel.getHeight();
+                    double scaleX = pageFormat.getImageableWidth() / page.getWidth();
+                    double scaleY = pageFormat.getImageableHeight() / page.getHeight();
                     double scale = Math.min(scaleX, scaleY);
 
                     g2.translate(pageFormat.getImageableX(), pageFormat.getImageableY());
                     g2.scale(scale, scale);
 
-                    pagePanel.print(g2);
+                    page.print(g2);
 
                     return Printable.PAGE_EXISTS;
                 });
@@ -253,6 +266,7 @@ public class WorksheetGenerator {
                         JOptionPane.ERROR_MESSAGE);
             }
         });
+
 
         topRightButtons.add(exportButton);
         topRightButtons.add(printButton);
@@ -302,66 +316,17 @@ public class WorksheetGenerator {
 
         // A "page-like" panel that will hold worksheet content; it can be large and will be scrollable
         // Wrapper that RESIZES but does not draw
-        // ---------- PAGE PANEL (with header + center content) ----------
-        pagePanel = new JPanel(new BorderLayout());
-        pagePanel.setOpaque(false);
-
-// The actual white "paper" area renderer
-        JPanel renderPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                g2.setColor(Color.WHITE);
-                g2.fillRect(0, 0, getWidth(), getHeight());
-
-                if (showMargins) {
-                    g2.setColor(new Color(0, 0, 0, 60));
-                    g2.setStroke(new BasicStroke(1.2f));
-                    int left = marginLeft;
-                    int top = marginTop;
-                    int right = getWidth() - marginRight;
-                    int bottom = getHeight() - marginBottom;
-                    g2.drawRect(left, top, right - left, bottom - top);
-                }
-            }
-        };
-        renderPanel.setLayout(new BorderLayout());
-        renderPanel.setBorder(new LineBorder(new Color(170, 170, 255), 2, true));
-        renderPanel.setPreferredSize(new Dimension(1000, 1400));
-        renderPanel.setBackground(Color.WHITE);
-        renderPanel.setOpaque(true);
-
-// Center area holds the editable/grid content
-        centerContentPanel = new JPanel(new BorderLayout());
-        centerContentPanel.setBackground(Color.WHITE);
-        centerContentPanel.setOpaque(true);
-
-
-// Keep a reference to worksheet settings
-        WorksheetSettings settings = new WorksheetSettings("Default", "Tracing Letters", 20);
-
-// Build fixed header INSIDE the white render panel
-        headerPanel = buildHeaderPanel(pagePanel, settings);
-        renderPanel.add(headerPanel, BorderLayout.NORTH);
-
-// Put center content ALSO inside renderPanel
-        renderPanel.add(centerContentPanel, BorderLayout.CENTER);
-// white paper to the page panel (THIS WAS MISSING)
-        pagePanel.add(renderPanel, BorderLayout.CENTER);
-
-
-        // Add default blank area or grid area
-        drawGridOnCanvas(pagePanel, settings);
-
         // Scroll pane that holds the pagePanel
         // Center wrapper for responsive canvas
         JPanel canvasWrapper = new JPanel(new GridBagLayout());
         canvasWrapper.setOpaque(false);
-        canvasWrapper.add(pagePanel);
+        pageContainer = new JPanel();
+        pageContainer.setLayout(new BoxLayout(pageContainer, BoxLayout.Y_AXIS));
+        pageContainer.setOpaque(false);
+
+        canvasWrapper.add(pageContainer);
+
+
 
 // Scroll pane
         JScrollPane canvasScroll = new JScrollPane(canvasWrapper);
@@ -378,6 +343,10 @@ public class WorksheetGenerator {
 
         background.add(canvasContainer, BorderLayout.CENTER);
 
+// ============================================================
+// INITIALIZE FIRST PAGE  (STEP 4)
+// ============================================================
+        addNewPage();   // creates Page 1 and sets it active
 
         // ============================================================
         // BOTTOM TOOLBAR + chat launcher (docked)
@@ -588,29 +557,22 @@ public class WorksheetGenerator {
                     "100%"
             );
 
-            if (selected != null && renderPanel != null) {
+            if (selected != null) {
                 try {
-                    // Parse zoom percentage
                     double zoomFactor = Double.parseDouble(selected.replace("%", "")) / 100.0;
 
-                    // Get base size (A4 default)
                     int baseWidth = 1000;
                     int baseHeight = 1400;
 
-                    // Calculate new size based on zoom
-                    int newWidth = (int)(baseWidth * zoomFactor);
-                    int newHeight = (int)(baseHeight * zoomFactor);
+                    int newWidth = (int) (baseWidth * zoomFactor);
+                    int newHeight = (int) (baseHeight * zoomFactor);
 
-                    // Apply zoom to renderPanel and pagePanel ONLY
-                    Dimension newSize = new Dimension(newWidth, newHeight);
-                    renderPanel.setPreferredSize(newSize);
-                    pagePanel.setPreferredSize(newSize);
+                    JPanel page = pagePanels.get(activePageIndex);
 
-                    // Force layout update
-                    renderPanel.revalidate();
-                    renderPanel.repaint();
-                    pagePanel.revalidate();
-                    pagePanel.repaint();
+                    page.setPreferredSize(new Dimension(newWidth, newHeight));
+                    page.revalidate();
+                    page.repaint();
+
                     canvasScroll.revalidate();
 
                     JOptionPane.showMessageDialog(frame,
@@ -625,6 +587,7 @@ public class WorksheetGenerator {
                             JOptionPane.ERROR_MESSAGE);
                 }
             }
+
         });
 
         rightButtons.add(autosaveBtn);
@@ -670,16 +633,21 @@ public class WorksheetGenerator {
         // BUILD SIDEBAR SECTIONS (these methods will update pageTopDisplay / pagePanel as needed)
         // ============================================================
         // Create student details section with live preview writer
-        leftContent.add(createStudentDetailsSection(pagePanel));
+        leftContent.add(createStudentDetailsSection());
+        leftContent.add(Box.createVerticalStrut(8));
+
+        leftContent.add(gridSection());
+        leftContent.add(Box.createVerticalStrut(8));
+
+        leftContent.add(pageSizeSection(canvasWrapper, canvasScroll));
 
         leftContent.add(Box.createVerticalStrut(8));
-        leftContent.add(gridSection(pagePanel, settings));
-        leftContent.add(pageSizeSection(pagePanel, canvasScroll));
 
+        leftContent.add(fontSection());
         leftContent.add(Box.createVerticalStrut(8));
-        leftContent.add(fontSection(pagePanel, settings));
+
+        leftContent.add(importContentSection());
         leftContent.add(Box.createVerticalStrut(8));
-        leftContent.add(importContentSection(pagePanel));
 
         leftContent.add(Box.createVerticalStrut(8));
 //        leftContent.add(colorPaletteSection(pagePanel, renderPanel, null, settings));
@@ -703,9 +671,10 @@ public class WorksheetGenerator {
     // ===========================
     // STUDENT DETAILS (updates pageTopDisplay)
     // ===========================
-    public static JPanel createStudentDetailsSection(JPanel pagePanel) {
+    public static JPanel createStudentDetailsSection(){
 
-        RoundedPanel sectionPanel = new RoundedPanel(25);
+
+    RoundedPanel sectionPanel = new RoundedPanel(25);
         sectionPanel.setLayout(new BorderLayout());
         sectionPanel.setOpaque(false);
         sectionPanel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
@@ -783,8 +752,9 @@ public class WorksheetGenerator {
             String name = nameField.getText();
             String ins = instructionsArea.getText();
             updateHeaderText(name, ins);
-            pagePanel.revalidate();
-            pagePanel.repaint();
+            pagePanels.get(activePageIndex).revalidate();
+            pagePanels.get(activePageIndex).repaint();
+
         };
 
         nameField.getDocument().addDocumentListener(simpleListener(refresh));
@@ -796,7 +766,7 @@ public class WorksheetGenerator {
     // ============================================================
 // PAGE SIZE SECTION (A4, Letter, Legal, A5, Custom)
 // ============================================================
-    public static JPanel pageSizeSection(JPanel pagePanel, JScrollPane canvasScroll) {
+    public static JPanel pageSizeSection(JPanel canvasWrapper, JScrollPane canvasScroll) {
 
         RoundedPanel outer = new RoundedPanel(25);
         outer.setOpaque(false);
@@ -948,14 +918,11 @@ public class WorksheetGenerator {
             }
 
             // Apply new size
-            pagePanel.setPreferredSize(new Dimension(width, height));
+            JPanel page = pagePanels.get(activePageIndex);
+            page.setPreferredSize(new Dimension(width, height));
+            updateCanvasLayout(page, canvasWrapper, canvasScroll);
 
-            // Force layout refresh of:
-            // - pagePanel (the page)
-            // - canvasWrapper (the centering container)
-            // - canvasScroll (scroll pane)
-            JPanel wrapper = (JPanel) canvasScroll.getViewport().getView();
-            updateCanvasLayout(pagePanel, wrapper, canvasScroll);
+
         });
 
         // Add widgets
@@ -987,7 +954,7 @@ public class WorksheetGenerator {
     // ===========================
     // GRID SECTION (works with settings)
     // ===========================
-    public static JPanel gridSection(JPanel pagePanel, WorksheetSettings settings) {
+    public static JPanel gridSection() {
 
         RoundedPanel outer = new RoundedPanel(25);
         outer.setOpaque(false);
@@ -1109,7 +1076,8 @@ public class WorksheetGenerator {
                     opacitySlider.getValue()
             );
 
-            drawGridOnCanvas(pagePanel, settings);
+            drawGridOnCanvas(pagePanels.get(activePageIndex), settings);
+
         });
 
         content.add(showGrid);
@@ -1209,7 +1177,7 @@ public class WorksheetGenerator {
     // ===========================
     // FONT SECTION
     // ===========================
-    public static JPanel fontSection(JPanel pagePanel, WorksheetSettings settings) {
+    public static JPanel fontSection() {
 
         RoundedPanel outer = new RoundedPanel(25);
         outer.setOpaque(false);
@@ -1490,8 +1458,10 @@ public class WorksheetGenerator {
             // Refresh
             centerContentPanel.revalidate();
             centerContentPanel.repaint();
-            pagePanel.revalidate();
-            pagePanel.repaint();
+            JPanel page = pagePanels.get(activePageIndex);
+//            Dimension pageSize = page.getPreferredSize();
+            page.revalidate();
+            page.repaint();
 
             JOptionPane.showMessageDialog(null, "Page updated. You can edit text directly on the page.");
         });
@@ -1516,7 +1486,10 @@ public class WorksheetGenerator {
 
             // Restore page content WITHOUT removing the header
             centerContentPanel.removeAll();
-            drawGridOnCanvas(pagePanel, settings);
+            drawGridOnCanvas(pagePanels.get(activePageIndex),
+                    new WorksheetSettings("Default","",20)
+            );
+
 
             // Ensure header stays at the top
             if (headerPanel.getParent() == null) {
@@ -1580,7 +1553,7 @@ public class WorksheetGenerator {
     // ===========================
     // IMPORT CONTENT SECTION
     // ===========================
-    public static JPanel importContentSection(JPanel pagePanel) {
+    public static JPanel importContentSection() {
         RoundedPanel outer = new RoundedPanel(25);
         outer.setOpaque(false);
         outer.setLayout(new BorderLayout());
@@ -1799,7 +1772,7 @@ public class WorksheetGenerator {
 
                 JScrollPane textScroll = new JScrollPane(textBlock);
                 centerContentPanel.add(textScroll, BorderLayout.CENTER);
-                refresh(pagePanel);
+                refresh(pagePanels.get(activePageIndex));
                 return;
             }
 
@@ -1808,7 +1781,7 @@ public class WorksheetGenerator {
                 JLabel logoPreview = new JLabel(headerLogoLabel.getIcon());
                 logoPreview.setHorizontalAlignment(SwingConstants.CENTER);
                 centerContentPanel.add(logoPreview, BorderLayout.NORTH);
-                refresh(pagePanel);
+                refresh(pagePanels.get(activePageIndex));
                 return;
             }
 
@@ -2645,8 +2618,8 @@ public class WorksheetGenerator {
         return outer;
     }
     public static void updateCanvasLayout(JPanel pagePanel, JPanel canvasWrapper, JScrollPane scroll) {
-        pagePanel.revalidate();
-        pagePanel.repaint();
+        pagePanels.get(activePageIndex).revalidate();
+        pagePanels.get(activePageIndex).repaint();
 
         canvasWrapper.revalidate();
         canvasWrapper.repaint();
@@ -2706,7 +2679,8 @@ public class WorksheetGenerator {
     public static JPanel buildHeaderPanel(JPanel pagePanel, WorksheetSettings settings) {
 
         int headerHeight = 90;
-        Dimension pageSize = pagePanel.getPreferredSize();
+// Use the passed-in pagePanel (safer while creating a new page)
+        Dimension pageSize = pagePanel != null ? pagePanel.getPreferredSize() : null;
         if (pageSize != null && pageSize.height > 0) {
             headerHeight = Math.max(60, Math.min(140, pageSize.height / 12));
         }
@@ -2767,6 +2741,8 @@ public class WorksheetGenerator {
         textWrap.add(headerInstructionsLabel);
 
         header.add(textWrap, BorderLayout.CENTER);
+// publish to global reference so other UI sections can access/update it
+        headerPanel = header;
 
         return header;
     }
@@ -2798,8 +2774,10 @@ public class WorksheetGenerator {
     private static void refresh(JPanel pagePanel) {
         centerContentPanel.revalidate();
         centerContentPanel.repaint();
-        pagePanel.revalidate();
-        pagePanel.repaint();
+        pagePanels.get(activePageIndex)
+                .revalidate();
+        pagePanels.get(activePageIndex)
+                .repaint();
     }
     public static void applyAlignmentToEditor(int align) {
         // store as current selection
@@ -2918,6 +2896,130 @@ public class WorksheetGenerator {
         } catch (Exception ignored) {}
 
         return new Font(fam, style, size);
+    }
+    public static void addNewPage() {
+
+        // Create the page
+        JPanel newPage = new JPanel(new BorderLayout());
+        newPage.setOpaque(false);
+
+        JPanel renderPanel = new JPanel(new BorderLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setColor(Color.WHITE);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+
+                if (showMargins) {
+                    g2.setColor(new Color(0, 0, 0, 60));
+                    g2.drawRect(marginLeft, marginTop,
+                            getWidth() - marginLeft - marginRight,
+                            getHeight() - marginTop - marginBottom);
+                }
+            }
+        };
+
+        renderPanel.setBorder(new LineBorder(new Color(170, 170, 255), 2, true));
+        renderPanel.setPreferredSize(new Dimension(1000, 1400));
+
+        JPanel header = buildHeaderPanel(newPage, new WorksheetSettings("Default", "", 20));
+        JPanel content = new JPanel(new BorderLayout());
+        content.setBackground(Color.WHITE);
+
+        newPage.add(header, BorderLayout.NORTH);
+        newPage.add(content, BorderLayout.CENTER);
+
+        pagePanels.add(newPage);
+        pageContainer.add(newPage);
+        pageContainer.revalidate();
+        pageContainer.repaint();
+
+        // Set this page as active
+        // mark current page globally
+        activePageIndex = pagePanels.size() - 1;
+        pagePanel = newPage;
+        centerContentPanel = content;   // you already have this, keep it
+        int newIndex = pagePanels.size() - 1;
+        newPage.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                activatePage(newIndex);
+            }
+        });
+
+        // Make sure the header and content we created are present
+        // Set this page as active (use helper)
+        activatePage(newIndex);
+    }
+    // ---------- Add these helper methods (place near other utilities) ----------
+    public static JPanel getContentPanelFromPage(JPanel page) {
+        // page layout: header at BorderLayout.NORTH, content at BorderLayout.CENTER
+        // so getComponent(1) is the content panel (safer with check)
+        for (Component c : page.getComponents()) {
+            if (c instanceof JPanel) {
+                BorderLayout bl = (BorderLayout) page.getLayout();
+                // try to find CENTER directly
+            }
+        }
+        // fallback: assume index 1 is center content (your addNewPage follows that)
+        try {
+            Component c = page.getComponent(1);
+            if (c instanceof JPanel) return (JPanel) c;
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    public static void activatePage(int index) {
+        if (index < 0 || index >= pagePanels.size()) return;
+
+        // de-highlight previous
+        if (activePageIndex >= 0 && activePageIndex < pagePanels.size()) {
+            JPanel prev = pagePanels.get(activePageIndex);
+            if (prev != null) prev.setBorder(new LineBorder(new Color(170, 170, 255), 2, true));
+        }
+
+        activePageIndex = index;
+        pagePanel = pagePanels.get(activePageIndex);
+
+        // set the centerContentPanel reference to the clicked page's center panel
+        JPanel content = getContentPanelFromPage(pagePanel);
+        if (content != null) {
+            centerContentPanel = content;
+        }
+
+        // visually mark active page
+        pagePanel.setBorder(new LineBorder(new Color(60, 120, 220), 3, true));
+
+        // if the content contains a scrollpane->textpane, focus it
+        if (centerContentPanel.getComponentCount() > 0) {
+            Component comp = centerContentPanel.getComponent(0);
+            if (comp instanceof JScrollPane sp) {
+                Component view = sp.getViewport().getView();
+                if (view instanceof JTextPane tp) {
+                    tp.requestFocusInWindow();
+                } else if (view instanceof JTextArea ta) {
+                    ta.requestFocusInWindow();
+                }
+            }
+        }
+
+        // repaint and revalidate relevant UI pieces
+        pageContainer.revalidate();
+        pageContainer.repaint();
+        canvasScrollRevalidateSafely();
+    }
+
+    // small helper so activatePage can revalidate the canvas scroll (you'll need to add this method)
+    private static void canvasScrollRevalidateSafely() {
+        // canvasScroll is local in createAndShowUI; easiest option: call updateCanvasLayout for active page
+        if (pagePanels.size() > 0) {
+            JPanel p = pagePanels.get(activePageIndex);
+            // If you named your canvasWrapper and canvasScroll as local variables, either make them fields
+            // or just revalidate the page and pageContainer (this is sufficient)
+            p.revalidate();
+            p.repaint();
+            pageContainer.revalidate();
+            pageContainer.repaint();
+        }
     }
 
 }
