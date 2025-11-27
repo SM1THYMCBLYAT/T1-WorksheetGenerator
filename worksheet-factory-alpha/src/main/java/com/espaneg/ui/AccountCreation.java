@@ -1,8 +1,9 @@
 package com.espaneg.ui;
 
+import com.espaneg.utils.ResourceLoader;
+
 import javax.swing.*;
 import java.awt.*;
-
 public class AccountCreation {
 
     private JFrame frame;
@@ -18,7 +19,11 @@ public class AccountCreation {
         frame.setLocationRelativeTo(null);
 
         // Window icon
-        frame.setIconImage(new ImageIcon("LOGO.png").getImage());
+        ImageIcon logo = ResourceLoader.loadIcon("LOGO.png");
+        if (logo != null) {
+            frame.setIconImage(new ImageIcon("LOGO.png").getImage());
+        }
+      // frame.setIconImage(new ImageIcon("LOGO.png").getImage());
 
         GradientPanel background = new GradientPanel();
         background.setLayout(null);
@@ -68,6 +73,20 @@ public class AccountCreation {
         form.add(new RoundedTextField("Mobile Number:"));
         form.add(new RoundedPasswordField("Password:"));
         form.add(new RoundedPasswordField("Confirm Password:"));
+        // CONTINUE BUTTON → Go directly to WorksheetGenerator
+        RoundedButton continueBtn = new RoundedButton("Continue");
+        continueBtn.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        continueBtn.addActionListener(e -> {
+            frame.dispose();            // close Account Creation
+//            new WorksheetGenerator();// open the worksheet generator
+        });
+
+        background.add(continueBtn);
+
+// Position under your form panel
+        continueBtn.setBounds(260, 660, 680, 40);
+
     }
 
     static class GradientPanel extends JPanel {

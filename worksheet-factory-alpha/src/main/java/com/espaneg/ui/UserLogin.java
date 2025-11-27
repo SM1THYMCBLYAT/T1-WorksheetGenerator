@@ -3,7 +3,6 @@ package com.espaneg.ui;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
-
 public class UserLogin extends JFrame {
 
         public UserLogin() {
@@ -37,6 +36,11 @@ public class UserLogin extends JFrame {
             continueBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
             continueBtn.setMaximumSize(new Dimension(200, 50));
             continueBtn.setBorder(BorderFactory.createEmptyBorder(15, 0, 20, 0));
+            continueBtn.addActionListener(e -> {
+                dispose();                  // close the login window
+//                WorksheetGenerator.main(null);   // open worksheet
+            });
+
 
             // Return button
             RoundedButton returnBtn = new RoundedButton("Return");
