@@ -38,7 +38,7 @@ public class UserLogin extends JFrame {
             continueBtn.setBorder(BorderFactory.createEmptyBorder(15, 0, 20, 0));
             continueBtn.addActionListener(e -> {
                 dispose();                  // close the login window
-//                WorksheetGenerator.main(null);   // open worksheet
+                WorksheetGenerator.main(null);   // open worksheet
             });
 
 

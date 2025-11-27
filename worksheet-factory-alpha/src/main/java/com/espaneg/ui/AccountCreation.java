@@ -79,7 +79,7 @@ public class AccountCreation {
 
         continueBtn.addActionListener(e -> {
             frame.dispose();            // close Account Creation
-//            new WorksheetGenerator();// open the worksheet generator
+            new WorksheetGenerator();// open the worksheet generator
         });
 
         background.add(continueBtn);
